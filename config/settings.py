@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'app.core',
     'app.administration',
     'app.bookings',
     'app.cleaning',
@@ -56,7 +57,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -73,7 +74,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
@@ -130,5 +131,48 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # API Configuration
 API_TITLE = "O11CE API"
-API_DESCRIPTION = "API para el sistema O11CE"
+API_DESCRIPTION = """
+# O11CE API
+
+API completa para el sistema de gestión hotelera O11CE.
+
+## Características principales:
+- **Gestión de habitaciones**: CRUD completo para habitaciones
+- **Sistema de reservas**: Manejo de reservas y disponibilidad
+- **Gestión de clientes**: Información y historial de clientes
+- **Mantenimiento**: Control de mantenimiento de habitaciones
+- **Limpieza**: Gestión del servicio de limpieza
+- **Administración**: Funciones administrativas del sistema
+
+## Autenticación
+La API utiliza autenticación basada en tokens para endpoints protegidos.
+
+## Documentación
+- **Swagger UI**: Disponible en `/api/docs`
+- **ReDoc**: Disponible en `/api/redoc`
+- **Scalar**: Disponible en `/api/scalar`
+"""
 API_VERSION = "1.0.0"
+API_CONTACT = {
+    "name": "Equipo O11CE",
+    "email": "soporte@o11ce.com",
+}
+API_LICENSE = {
+    "name": "MIT",
+    "url": "https://opensource.org/licenses/MIT",
+}
+
+
+# Email Configuration - Enviar emails reales
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_TIMEOUT = 20
+
+EMAIL_HOST_USER = 'germanvives15@gmail.com'  # Tu email real
+EMAIL_HOST_PASSWORD = 'ndja tpib ebpp qcbu'      # 👈 Contraseña de aplicación
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+EMAIL_SUBJECT_PREFIX = '[O11CE] '

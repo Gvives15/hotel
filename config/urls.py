@@ -18,8 +18,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from ninja import NinjaAPI
-from app.orquestador.views import router as orquestador_router
-from core.settings import API_TITLE, API_DESCRIPTION, API_VERSION
+from app.rooms.api import router as rooms_router
+from app.bookings.api import router as bookings_router
+from app.core.api import router as core_router
+from config.settings import API_TITLE, API_DESCRIPTION, API_VERSION
 from django.http import HttpResponse
 import json
 from enum import Enum
@@ -226,22 +228,101 @@ api = NinjaAPI(
     title=API_TITLE,
     description=API_DESCRIPTION,
     version=API_VERSION,
-    docs_url=None  # Deshabilitar la documentación por defecto
+    docs_url="/docs"  # Habilitar Swagger UI
 )
 
-# Agregar el router del orquestador
-api.add_router("/", orquestador_router)
+# Agregar los routers de las apps
+api.add_router("/", rooms_router)
+api.add_router("/", bookings_router)
+api.add_router("/", core_router)
+
+# Endpoint de información de la API
+@api.get("/info", tags=["Información"])
+def api_info(request):
+    """
+    Información general sobre la API O11CE
+    """
+    return {
+        "name": "O11CE API",
+        "version": API_VERSION,
+        "description": "API para el sistema de gestión hotelera O11CE",
+        "documentation": {
+            "swagger": "/api/docs",
+            "redoc": "/api/redoc", 
+            "scalar": "/api/scalar",
+            "openapi_json": "/api/openapi.json"
+        },
+        "contact": {
+            "name": "Equipo O11CE",
+            "email": "soporte@o11ce.com",
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT",
+        }
+    }
+
+# Endpoint para OpenAPI JSON
+@api.get("/openapi.json", include_in_schema=False)
+def openapi_json(request):
+    """
+    Especificación OpenAPI en formato JSON
+    """
+    from django.http import JsonResponse
+    return JsonResponse(api.get_openapi_schema())
+
+# Endpoint para ReDoc
+@api.get("/redoc", include_in_schema=False)
+def redoc_html(request):
+    """
+    Documentación ReDoc
+    """
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{api.title} - ReDoc</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+            }}
+        </style>
+    </head>
+    <body>
+        <redoc spec-url="/api/openapi.json"></redoc>
+        <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0/bundles/redoc.standalone.js"></script>
+    </body>
+    </html>
+    """
+    return HttpResponse(html)
 
 # Endpoint para Scalar API Reference
 @api.get("/scalar", include_in_schema=False)
 def scalar_html(request):
     return get_scalar_api_reference(
-        openapi_url=api.openapi_url,
+        openapi_url="/api/openapi.json",
         title=api.title,
-        hide_download_button=True,
+        hide_download_button=False,  # Permitir descarga del OpenAPI spec
         layout=Layout.MODERN,
         dark_mode=True,
-        scalar_favicon_url="https://fastapi.tiangolo.com/img/favicon.png"
+        show_sidebar=True,
+        hide_models=False,  # Mostrar modelos de datos
+        search_hot_key=SearchHotKey.K,
+        scalar_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+        servers=[
+            {
+                "url": "http://localhost:8000/api",
+                "description": "Servidor de desarrollo"
+            },
+            {
+                "url": "https://api.o11ce.com/api",
+                "description": "Servidor de producción"
+            }
+        ]
     )
 
 urlpatterns = [
