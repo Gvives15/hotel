@@ -1,4 +1,4 @@
-Perfecto Germán. Acá tenés el `README.md` completo y profesional para tu repositorio de GitHub del sistema **Hotel O11CE**, basado en toda la documentación que generaste.
+`README.md` completo y profesional para tu repositorio de GitHub del sistema **Hotel O11CE**, basado en toda la documentación que generaste.
 
 ---
 
