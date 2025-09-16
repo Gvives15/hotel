@@ -1,0 +1,395 @@
+{% extends 'base.html' %}
+
+{% block title %}Administración - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item active">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Panel de Administración</h1>
+                        <div class="text-muted">
+                            <i class="fas fa-clock"></i> {{ now|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+
+                    <!-- Admin Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stats-number">{{ total_users|default:0 }}</div>
+                                <div class="stats-label">Usuarios</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stats-number">{{ system_alerts|default:0 }}</div>
+                                <div class="stats-label">Alertas</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <div class="stats-number">{{ db_size|default:"0 MB" }}</div>
+                                <div class="stats-label">Base de Datos</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                                    <i class="fas fa-server"></i>
+                                </div>
+                                <div class="stats-number">{{ uptime|default:"99.9%" }}</div>
+                                <div class="stats-label">Uptime</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Acciones Administrativas</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <button class="btn btn-primary w-100 h-100" onclick="backupSystem()">
+                                                <i class="fas fa-download"></i><br>
+                                                <strong>Backup del Sistema</strong><br>
+                                                <small>Crear respaldo completo</small>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <button class="btn btn-success w-100 h-100" onclick="exportData()">
+                                                <i class="fas fa-file-export"></i><br>
+                                                <strong>Exportar Datos</strong><br>
+                                                <small>Exportar reportes</small>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <button class="btn btn-warning w-100 h-100" onclick="systemMaintenance()">
+                                                <i class="fas fa-tools"></i><br>
+                                                <strong>Mantenimiento</strong><br>
+                                                <small>Optimizar sistema</small>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <button class="btn btn-info w-100 h-100" onclick="userManagement()">
+                                                <i class="fas fa-user-cog"></i><br>
+                                                <strong>Gestionar Usuarios</strong><br>
+                                                <small>Administrar acceso</small>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información del Sistema</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-borderless">
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>Versión del Sistema:</strong></td>
+                                                    <td>O11CE v1.0.0</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Framework:</strong></td>
+                                                    <td>Django 5.2.4</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Base de Datos:</strong></td>
+                                                    <td>SQLite</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Servidor Web:</strong></td>
+                                                    <td>Django Development Server</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Zona Horaria:</strong></td>
+                                                    <td>UTC</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Idioma:</strong></td>
+                                                    <td>Español</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Último Backup:</strong></td>
+                                                    <td>{{ last_backup|default:"Nunca" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Espacio en Disco:</strong></td>
+                                                    <td>{{ disk_space|default:"N/A" }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Seguridad</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Contraseñas</span>
+                                            <span class="badge bg-success">Seguras</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-success" style="width: 95%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Acceso</span>
+                                            <span class="badge bg-warning">Revisar</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 75%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>Firewall</span>
+                                            <span class="badge bg-success">Activo</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-info">
+                                        <small>
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Recomendación:</strong> Realizar backup semanal y revisar logs de acceso.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-history"></i> Actividad Reciente</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="timeline">
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker bg-primary"></div>
+                                            <div class="timeline-content">
+                                                <h6>Usuario registrado</h6>
+                                                <p class="text-muted">Nuevo usuario "admin" creado</p>
+                                                <small class="text-muted">Hace 2 horas</small>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker bg-success"></div>
+                                            <div class="timeline-content">
+                                                <h6>Backup completado</h6>
+                                                <p class="text-muted">Respaldo automático del sistema</p>
+                                                <small class="text-muted">Hace 1 día</small>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker bg-warning"></div>
+                                            <div class="timeline-content">
+                                                <h6>Mantenimiento programado</h6>
+                                                <p class="text-muted">Actualización de seguridad pendiente</p>
+                                                <small class="text-muted">Hace 3 días</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px #e9ecef;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-left: 10px;
+}
+
+.timeline-content h6 {
+    margin: 0 0 5px 0;
+    font-weight: 600;
+}
+
+.timeline-content p {
+    margin: 0 0 5px 0;
+}
+
+.timeline-content small {
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+// Administrative functions
+function backupSystem() {
+    if (confirm('¿Crear backup completo del sistema? Esto puede tomar varios minutos.')) {
+        // Implement backup functionality
+        console.log('Creating system backup...');
+        alert('Backup iniciado. Se notificará cuando esté completo.');
+    }
+}
+
+function exportData() {
+    // Implement export functionality
+    console.log('Exporting data...');
+    alert('Función de exportación en desarrollo.');
+}
+
+function systemMaintenance() {
+    if (confirm('¿Ejecutar mantenimiento del sistema? Esto puede afectar temporalmente el rendimiento.')) {
+        // Implement maintenance functionality
+        console.log('Running system maintenance...');
+        alert('Mantenimiento iniciado. El sistema puede estar lento temporalmente.');
+    }
+}
+
+function userManagement() {
+    // Implement user management functionality
+    console.log('Opening user management...');
+    alert('Panel de gestión de usuarios en desarrollo.');
+}
+</script>
+{% endblock %}

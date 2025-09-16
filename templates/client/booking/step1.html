@@ -1,0 +1,315 @@
+{% extends 'client/base.html' %}
+
+{% block title %}Reserva - Paso 1 - O11CE Hotel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .booking-progress {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .progress-step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .progress-step:last-child {
+        margin-bottom: 0;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-right: 1rem;
+    }
+    
+    .step-number.active {
+        background: var(--accent-color);
+    }
+    
+    .step-number.completed {
+        background: var(--success-color);
+    }
+    
+    .step-content {
+        flex: 1;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .step-description {
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+    }
+    
+    .booking-form-step {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        padding: 2.5rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+    }
+    
+    .form-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-title i {
+        margin-right: 0.5rem;
+        color: var(--primary-color);
+    }
+    
+    .date-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .guests-input {
+        max-width: 200px;
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .info-card h5 {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .info-card p {
+        margin-bottom: 0;
+        opacity: 0.9;
+    }
+    
+    @media (max-width: 768px) {
+        .date-inputs {
+            grid-template-columns: 1fr;
+        }
+        
+        .booking-form-step {
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <!-- Progress Bar -->
+        <div class="booking-progress">
+            <div class="progress-step">
+                <div class="step-number active">1</div>
+                <div class="step-content">
+                    <div class="step-title">Fechas y Huéspedes</div>
+                    <div class="step-description">Selecciona las fechas de llegada y salida, y el número de personas</div>
+                </div>
+            </div>
+            <div class="progress-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Habitación</div>
+                    <div class="step-description">Elige la habitación que mejor se adapte a tus necesidades</div>
+                </div>
+            </div>
+            <div class="progress-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Datos Personales</div>
+                    <div class="step-description">Completa tu información personal</div>
+                </div>
+            </div>
+            <div class="progress-step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Confirmación</div>
+                    <div class="step-description">Revisa y confirma tu reserva</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="info-card">
+            <h5><i class="fas fa-info-circle me-2"></i>Información Importante</h5>
+            <p>Las reservas se pueden realizar con un mínimo de 1 día de anticipación. El check-in es a partir de las 14:00 y el check-out hasta las 11:00.</p>
+        </div>
+
+        <!-- Booking Form -->
+        <div class="booking-form-step">
+            <form method="POST" id="bookingForm">
+                {% csrf_token %}
+                
+                <!-- Fechas de Estancia -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Fechas de Estancia
+                    </h3>
+                    <div class="date-inputs">
+                        <div class="mb-3">
+                            <label for="check_in_date" class="form-label fw-bold">Fecha de Llegada *</label>
+                            <input type="date" class="form-control" id="check_in_date" name="check_in_date" 
+                                   value="{{ default_check_in|date:'Y-m-d' }}" required>
+                            <div class="form-text">Selecciona la fecha de llegada</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="check_out_date" class="form-label fw-bold">Fecha de Salida *</label>
+                            <input type="date" class="form-control" id="check_out_date" name="check_out_date" 
+                                   value="{{ default_check_out|date:'Y-m-d' }}" required>
+                            <div class="form-text">Selecciona la fecha de salida</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Número de Huéspedes -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-users"></i>
+                        Número de Huéspedes
+                    </h3>
+                    <div class="guests-input">
+                        <label for="guests_count" class="form-label fw-bold">Cantidad de Personas *</label>
+                        <select class="form-select" id="guests_count" name="guests_count" required>
+                            <option value="">Selecciona...</option>
+                            <option value="1">1 persona</option>
+                            <option value="2">2 personas</option>
+                            <option value="3">3 personas</option>
+                            <option value="4">4 personas</option>
+                            <option value="5">5 personas</option>
+                            <option value="6">6 personas</option>
+                        </select>
+                        <div class="form-text">Selecciona el número de personas que se hospedarán</div>
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'client_index' %}" class="btn btn-outline-secondary me-md-2">
+                        <i class="fas fa-arrow-left me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Continuar <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkInDate = document.getElementById('check_in_date');
+    const checkOutDate = document.getElementById('check_out_date');
+    const guestsCount = document.getElementById('guests_count');
+    const form = document.getElementById('bookingForm');
+
+    // Establecer fecha mínima (mañana)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    checkInDate.min = tomorrowStr;
+    checkOutDate.min = tomorrowStr;
+
+    // Validar fechas
+    function validateDates() {
+        const checkIn = new Date(checkInDate.value);
+        const checkOut = new Date(checkOutDate.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Validar fecha de llegada
+        if (checkIn <= today) {
+            checkInDate.setCustomValidity('La fecha de llegada debe ser al menos mañana');
+            return false;
+        } else {
+            checkInDate.setCustomValidity('');
+        }
+
+        // Validar fecha de salida
+        if (checkOut <= checkIn) {
+            checkOutDate.setCustomValidity('La fecha de salida debe ser posterior a la fecha de llegada');
+            return false;
+        } else {
+            checkOutDate.setCustomValidity('');
+        }
+
+        return true;
+    }
+
+    // Event listeners
+    checkInDate.addEventListener('change', function() {
+        // Establecer fecha mínima de salida
+        const checkIn = new Date(this.value);
+        const nextDay = new Date(checkIn);
+        nextDay.setDate(nextDay.getDate() + 1);
+        checkOutDate.min = nextDay.toISOString().split('T')[0];
+        
+        // Si la fecha de salida es anterior, actualizarla
+        if (checkOutDate.value && new Date(checkOutDate.value) <= checkIn) {
+            checkOutDate.value = nextDay.toISOString().split('T')[0];
+        }
+        
+        validateDates();
+    });
+
+    checkOutDate.addEventListener('change', validateDates);
+
+    // Validación del formulario
+    form.addEventListener('submit', function(e) {
+        if (!validateDates()) {
+            e.preventDefault();
+            return false;
+        }
+
+        if (!guestsCount.value) {
+            e.preventDefault();
+            guestsCount.focus();
+            return false;
+        }
+
+        // Mostrar loading
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+        submitBtn.disabled = true;
+    });
+});
+</script>
+{% endblock %}

@@ -16,7 +16,8 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.contrib.auth import views as auth_views
 from ninja import NinjaAPI
 from app.rooms.api import router as rooms_router
 from app.bookings.api import router as bookings_router
@@ -25,6 +26,25 @@ from config.settings import API_TITLE, API_DESCRIPTION, API_VERSION
 from django.http import HttpResponse
 import json
 from enum import Enum
+
+# Importar vistas web
+from app.core.views import (
+    login_view, register_view, logout_view, dashboard_view,
+    profile_view, settings_view, rooms_view, bookings_view,
+    clients_view, cleaning_view, maintenance_view,
+    administration_view, reports_view,
+    # Vistas del portal de clientes
+    client_index_view, client_rooms_view, client_room_detail_view,
+    client_booking_view, client_my_bookings_view, client_booking_detail_view,
+    client_cancel_booking_view, client_profile_view, client_login_view,
+    client_register_view, client_logout_view
+)
+
+# Importar vistas de reservas
+from app.bookings.views import (
+    booking_step1, booking_step2, booking_step3, booking_step4,
+    create_booking_final, booking_detail, my_bookings, cancel_booking
+)
 
 # Scalar API Reference Implementation
 class Layout(Enum):
@@ -328,4 +348,67 @@ def scalar_html(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", api.urls),
+    
+    # Rutas web
+    path("", dashboard_view, name="dashboard"),
+    path("login/", login_view, name="login"),
+    path("register/", register_view, name="register"),
+    path("logout/", logout_view, name="logout"),
+    path("profile/", profile_view, name="profile"),
+    path("settings/", settings_view, name="settings"),
+    
+    # Rutas de restablecimiento de contraseña
+    path("password_reset/", auth_views.PasswordResetView.as_view(
+        template_name='registration/password_reset_form.html',
+        email_template_name='registration/password_reset_email.html',
+        subject_template_name='registration/password_reset_subject.txt'
+    ), name="password_reset"),
+    path("password_reset/done/", auth_views.PasswordResetDoneView.as_view(
+        template_name='registration/password_reset_done.html'
+    ), name="password_reset_done"),
+    path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(
+        template_name='registration/password_reset_confirm.html'
+    ), name="password_reset_confirm"),
+    path("reset/done/", auth_views.PasswordResetCompleteView.as_view(
+        template_name='registration/password_reset_complete.html'
+    ), name="password_reset_complete"),
+    
+    # Rutas de módulos
+    path("rooms/", rooms_view, name="rooms"),
+    path("bookings/", bookings_view, name="bookings"),
+    path("clients/", clients_view, name="clients"),
+    path("cleaning/", cleaning_view, name="cleaning"),
+    path("maintenance/", maintenance_view, name="maintenance"),
+    path("administration/", administration_view, name="administration"),
+    path("reports/", reports_view, name="reports"),
+    
+    # ============================================================================
+    # RUTAS DEL PORTAL DE CLIENTES
+    # ============================================================================
+    path("portal/", client_index_view, name="client_index"),
+    path("portal/rooms/", client_rooms_view, name="client_rooms"),
+    path("portal/rooms/<int:room_id>/", client_room_detail_view, name="client_room_detail"),
+    path("portal/booking/", client_booking_view, name="client_booking"),
+    path("portal/booking/<int:room_id>/", client_booking_view, name="client_booking_room"),
+    path("portal/my-bookings/", client_my_bookings_view, name="client_my_bookings"),
+    path("portal/my-bookings/<int:booking_id>/", client_booking_detail_view, name="client_booking_detail"),
+    path("portal/my-bookings/<int:booking_id>/cancel/", client_cancel_booking_view, name="client_cancel_booking"),
+    path("portal/profile/", client_profile_view, name="client_profile"),
+    path("portal/login/", client_login_view, name="client_login"),
+    path("portal/register/", client_register_view, name="client_register"),
+    path("portal/logout/", client_logout_view, name="client_logout"),
+    
+    # ============================================================================
+    # RUTAS DEL PROCESO DE RESERVA MULTI-PASO
+    # ============================================================================
+    path("booking/step1/", booking_step1, name="booking_step1"),
+    path("booking/step2/", booking_step2, name="booking_step2"),
+    path("booking/step3/", booking_step3, name="booking_step3"),
+    path("booking/step4/", booking_step4, name="booking_step4"),
+    path("booking/create/", create_booking_final, name="create_booking_final"),
+    path("bookings/<int:booking_id>/", booking_detail, name="booking_detail"),
+    path("bookings/<int:booking_id>/cancel/", cancel_booking, name="cancel_booking"),
+    path("my-bookings/", my_bookings, name="my_bookings"),
+    
+
 ]

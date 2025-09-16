@@ -1,12 +1,16 @@
 from django.db import models
 from django.core.validators import EmailValidator
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 import re
 
 class Client(models.Model):
     """
     Modelo para representar los clientes/huéspedes del hotel
     """
+    # Relación con usuario (opcional)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True, help_text="Usuario asociado al cliente")
+    
     # Campos básicos
     first_name = models.CharField(max_length=100, help_text="Nombre del cliente")
     last_name = models.CharField(max_length=100, help_text="Apellido del cliente")

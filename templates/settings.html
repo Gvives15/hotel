@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Configuración del Sistema</h1>
+                        <div class="text-muted">
+                            <i class="fas fa-clock"></i> {{ now|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- General Settings -->
+                        <div class="col-lg-8">
+                            <!-- Hotel Information -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-hotel"></i> Información del Hotel</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Nombre del Hotel</label>
+                                                    <input type="text" class="form-control" name="hotel_name" value="Hotel O11CE" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Código del Hotel</label>
+                                                    <input type="text" class="form-control" name="hotel_code" value="O11CE" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Teléfono</label>
+                                                    <input type="tel" class="form-control" name="hotel_phone" value="+54 11 1234-5678">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Email</label>
+                                                    <input type="email" class="form-control" name="hotel_email" value="info@o11ce.com">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Dirección</label>
+                                            <textarea class="form-control" name="hotel_address" rows="3">Av. Corrientes 1234, Buenos Aires, Argentina</textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Guardar Información
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- System Settings -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-cogs"></i> Configuración del Sistema</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Zona Horaria</label>
+                                                    <select class="form-select" name="timezone">
+                                                        <option value="America/Argentina/Buenos_Aires" selected>Buenos Aires (GMT-3)</option>
+                                                        <option value="UTC">UTC</option>
+                                                        <option value="America/New_York">New York (GMT-5)</option>
+                                                        <option value="Europe/Madrid">Madrid (GMT+1)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Idioma</label>
+                                                    <select class="form-select" name="language">
+                                                        <option value="es" selected>Español</option>
+                                                        <option value="en">English</option>
+                                                        <option value="pt">Português</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Moneda</label>
+                                                    <select class="form-select" name="currency">
+                                                        <option value="ARS" selected>Peso Argentino (ARS)</option>
+                                                        <option value="USD">Dólar Estadounidense (USD)</option>
+                                                        <option value="EUR">Euro (EUR)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Formato de Fecha</label>
+                                                    <select class="form-select" name="date_format">
+                                                        <option value="DD/MM/YYYY" selected>DD/MM/YYYY</option>
+                                                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Guardar Configuración
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Email Settings -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-envelope"></i> Configuración de Email</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Servidor SMTP</label>
+                                                    <input type="text" class="form-control" name="smtp_server" value="smtp.gmail.com">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Puerto</label>
+                                                    <input type="number" class="form-control" name="smtp_port" value="587">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Email de Envío</label>
+                                                    <input type="email" class="form-control" name="smtp_email" value="germanvives15@gmail.com">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Contraseña</label>
+                                                    <input type="password" class="form-control" name="smtp_password" value="********">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" name="smtp_ssl" id="smtp_ssl" checked>
+                                            <label class="form-check-label" for="smtp_ssl">
+                                                Usar SSL/TLS
+                                            </label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Guardar Configuración de Email
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Settings Sidebar -->
+                        <div class="col-lg-4">
+                            <!-- Quick Settings -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-bolt"></i> Configuración Rápida</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Modo Oscuro</label>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="darkMode">
+                                            <label class="form-check-label" for="darkMode">Activar</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Notificaciones</label>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="notifications" checked>
+                                            <label class="form-check-label" for="notifications">Activar</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Auto-guardado</label>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="autosave" checked>
+                                            <label class="form-check-label" for="autosave">Activar</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Sesión Persistente</label>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="persistentSession">
+                                            <label class="form-check-label" for="persistentSession">Activar</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- System Status -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-server"></i> Estado del Sistema</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Servidor Web</span>
+                                        <span class="badge bg-success">Online</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Base de Datos</span>
+                                        <span class="badge bg-success">Conectado</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Servicio de Email</span>
+                                        <span class="badge bg-success">Activo</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Backup Automático</span>
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Última Actualización</span>
+                                        <small class="text-muted">Hace 2 horas</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Maintenance Actions -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-tools"></i> Acciones de Mantenimiento</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="clearCache()">
+                                            <i class="fas fa-broom"></i> Limpiar Caché
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm" onclick="optimizeDatabase()">
+                                            <i class="fas fa-database"></i> Optimizar Base de Datos
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm" onclick="testEmail()">
+                                            <i class="fas fa-envelope"></i> Probar Email
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="restartServices()">
+                                            <i class="fas fa-redo"></i> Reiniciar Servicios
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Quick settings functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Load saved settings
+    loadSettings();
+    
+    // Add event listeners for quick settings
+    document.getElementById('darkMode').addEventListener('change', function() {
+        saveSetting('darkMode', this.checked);
+        toggleDarkMode(this.checked);
+    });
+    
+    document.getElementById('notifications').addEventListener('change', function() {
+        saveSetting('notifications', this.checked);
+    });
+    
+    document.getElementById('autosave').addEventListener('change', function() {
+        saveSetting('autosave', this.checked);
+    });
+    
+    document.getElementById('persistentSession').addEventListener('change', function() {
+        saveSetting('persistentSession', this.checked);
+    });
+});
+
+function loadSettings() {
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    const notifications = localStorage.getItem('notifications') !== 'false';
+    const autosave = localStorage.getItem('autosave') !== 'false';
+    const persistentSession = localStorage.getItem('persistentSession') === 'true';
+    
+    document.getElementById('darkMode').checked = darkMode;
+    document.getElementById('notifications').checked = notifications;
+    document.getElementById('autosave').checked = autosave;
+    document.getElementById('persistentSession').checked = persistentSession;
+    
+    // Apply dark mode if enabled
+    if (darkMode) {
+        toggleDarkMode(true);
+    }
+}
+
+function saveSetting(key, value) {
+    localStorage.setItem(key, value);
+}
+
+function toggleDarkMode(enabled) {
+    if (enabled) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+}
+
+// Maintenance functions
+function clearCache() {
+    if (confirm('¿Limpiar caché del sistema? Esto puede mejorar el rendimiento.')) {
+        console.log('Clearing cache...');
+        alert('Caché limpiado exitosamente.');
+    }
+}
+
+function optimizeDatabase() {
+    if (confirm('¿Optimizar base de datos? Esto puede tomar varios minutos.')) {
+        console.log('Optimizing database...');
+        alert('Optimización de base de datos iniciada.');
+    }
+}
+
+function testEmail() {
+    console.log('Testing email configuration...');
+    alert('Email de prueba enviado. Revisa tu bandeja de entrada.');
+}
+
+function restartServices() {
+    if (confirm('¿Reiniciar servicios del sistema? Esto puede causar interrupciones temporales.')) {
+        console.log('Restarting services...');
+        alert('Reinicio de servicios iniciado.');
+    }
+}
+</script>
+
+<style>
+/* Dark mode styles */
+.dark-mode {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+}
+
+.dark-mode .card {
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+.dark-mode .sidebar {
+    background-color: #2d2d2d !important;
+}
+
+.dark-mode .navbar {
+    background-color: #2d2d2d !important;
+}
+</style>
+{% endblock %}

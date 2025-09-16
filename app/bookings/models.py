@@ -75,16 +75,17 @@ class Booking(models.Model):
     
     def save(self, *args, **kwargs):
         """Sobrescribir save para calcular precio total, validar disponibilidad y enviar email"""
+        skip_validation = kwargs.pop('skip_validation', False)
         is_new_booking = not self.pk  # Verificar si es una nueva reserva
         
-        if is_new_booking:  # Solo para nuevas reservas
+        if is_new_booking and not skip_validation:  # Solo para nuevas reservas
             self.validate_availability()
             self.calculate_total_price()
         
         super().save(*args, **kwargs)
         
         # Enviar email de confirmación automáticamente para nuevas reservas confirmadas
-        if is_new_booking and self.status == 'confirmed':
+        if is_new_booking and self.status == 'confirmed' and not skip_validation:
             try:
                 from app.core.services import EmailService
                 EmailService.send_booking_confirmation_async(self.id)

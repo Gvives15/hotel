@@ -380,4 +380,193 @@ class EmailService:
         ¡Esperamos que disfrutes de tu experiencia con nosotros!
         
         © 2024 O11CE - Sistema de Gestión Hotelera
+        """
+    
+    @staticmethod
+    def send_booking_cancellation(booking_id: int) -> dict:
+        """
+        Envía email de cancelación de reserva
+        
+        Args:
+            booking_id: ID de la reserva
+            
+        Returns:
+            dict: Resultado del envío
+        """
+        try:
+            # Obtener la reserva
+            booking = Booking.objects.select_related('client', 'room').get(id=booking_id)
+            
+            # Verificar que el cliente tenga email
+            if not booking.client.email:
+                logger.warning(f"Cliente {booking.client.id} no tiene email configurado")
+                return {
+                    "success": False,
+                    "message": "El cliente no tiene email configurado"
+                }
+            
+            # Preparar datos del email
+            subject = f"Cancelación de Reserva - {booking.room.number}"
+            recipient_email = booking.client.email
+            recipient_name = booking.client.first_name
+            
+            # Crear contenido HTML
+            html_content = EmailService._create_booking_cancellation_html(booking)
+            text_content = EmailService._create_booking_cancellation_text(booking)
+            
+            # Crear registro de email
+            email_log = EmailLog.objects.create(
+                recipient_email=recipient_email,
+                recipient_name=recipient_name,
+                subject=subject,
+                content=html_content,
+                booking=booking,
+                client=booking.client
+            )
+            
+            # Enviar email
+            try:
+                send_mail(
+                    subject=subject,
+                    message=text_content,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[recipient_email],
+                    html_message=html_content,
+                    fail_silently=False
+                )
+                
+                # Marcar como enviado
+                email_log.mark_as_sent()
+                
+                logger.info(f"Email de cancelación enviado exitosamente a {recipient_email}")
+                
+                return {
+                    "success": True,
+                    "message": "Email enviado exitosamente",
+                    "email_log_id": email_log.id,
+                    "recipient_email": recipient_email,
+                    "subject": subject
+                }
+                
+            except Exception as e:
+                error_msg = f"Error al enviar email: {str(e)}"
+                email_log.mark_as_failed(error_msg)
+                logger.error(error_msg)
+                
+                return {
+                    "success": False,
+                    "message": error_msg,
+                    "email_log_id": email_log.id
+                }
+                
+        except Booking.DoesNotExist:
+            return {
+                "success": False,
+                "message": "Reserva no encontrada"
+            }
+        except Exception as e:
+            logger.error(f"Error inesperado: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Error inesperado: {str(e)}"
+            }
+    
+    @staticmethod
+    def _create_booking_cancellation_html(booking: Booking) -> str:
+        """Crea el contenido HTML para email de cancelación"""
+        return f"""
+        <html>
+        <head>
+            <style>
+                body {{ 
+                    font-family: Arial, sans-serif; 
+                    line-height: 1.6;
+                    color: #333;
+                }}
+                .container {{ 
+                    max-width: 600px; 
+                    margin: 0 auto; 
+                    padding: 20px; 
+                }}
+                .header {{ 
+                    background-color: #dc3545; 
+                    color: white; 
+                    padding: 30px; 
+                    text-align: center; 
+                    border-radius: 8px 8px 0 0;
+                }}
+                .content {{ 
+                    padding: 30px; 
+                    background-color: #f9f9f9;
+                }}
+                .booking-details {{
+                    background-color: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                    border-left: 4px solid #dc3545;
+                }}
+                .footer {{ 
+                    text-align: center; 
+                    color: #666; 
+                    font-size: 12px; 
+                    padding: 20px;
+                    background-color: #f5f5f5;
+                    border-radius: 0 0 8px 8px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>❌ Reserva Cancelada</h1>
+                </div>
+                <div class="content">
+                    <h2>Hola {booking.client.first_name},</h2>
+                    <p>Tu reserva ha sido cancelada exitosamente.</p>
+                    
+                    <div class="booking-details">
+                        <h3>Detalles de la Reserva Cancelada:</h3>
+                        <p><strong>Número de Reserva:</strong> #{booking.id}</p>
+                        <p><strong>Habitación:</strong> {booking.room.number} ({booking.room.get_type_display()})</p>
+                        <p><strong>Fechas:</strong> {booking.check_in_date.strftime('%d/%m/%Y')} - {booking.check_out_date.strftime('%d/%m/%Y')}</p>
+                        <p><strong>Número de Personas:</strong> {booking.guests_count}</p>
+                        <p><strong>Precio Total:</strong> ${booking.total_price}</p>
+                    </div>
+                    
+                    <p>Si tienes alguna pregunta sobre la cancelación, no dudes en contactarnos.</p>
+                    
+                    <p>Esperamos verte pronto en O11CE.</p>
+                </div>
+                <div class="footer">
+                    <p>© 2024 O11CE - Sistema de Gestión Hotelera</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+    
+    @staticmethod
+    def _create_booking_cancellation_text(booking: Booking) -> str:
+        """Crea el contenido de texto plano para email de cancelación"""
+        return f"""
+        Reserva Cancelada - O11CE
+        
+        Hola {booking.client.first_name},
+        
+        Tu reserva ha sido cancelada exitosamente.
+        
+        Detalles de la Reserva Cancelada:
+        - Número de Reserva: #{booking.id}
+        - Habitación: {booking.room.number} ({booking.room.get_type_display()})
+        - Fechas: {booking.check_in_date.strftime('%d/%m/%Y')} - {booking.check_out_date.strftime('%d/%m/%Y')}
+        - Número de Personas: {booking.guests_count}
+        - Precio Total: ${booking.total_price}
+        
+        Si tienes alguna pregunta sobre la cancelación, no dudes en contactarnos.
+        
+        Esperamos verte pronto en O11CE.
+        
+        Este es un email automático, por favor no respondas a este mensaje.
+        © 2024 O11CE - Sistema de Gestión Hotelera
         """ 

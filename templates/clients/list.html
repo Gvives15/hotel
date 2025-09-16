@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}Clientes - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item active">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Gestión de Clientes</h1>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                            <i class="fas fa-plus"></i> Nuevo Cliente
+                        </button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">Todos</option>
+                                        <option value="active">Activo</option>
+                                        <option value="inactive">Inactivo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Tipo</label>
+                                    <select class="form-select" id="typeFilter">
+                                        <option value="">Todos</option>
+                                        <option value="vip">VIP</option>
+                                        <option value="regular">Regular</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Nacionalidad</label>
+                                    <input type="text" class="form-control" id="nationalityFilter" placeholder="Nacionalidad...">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Buscar</label>
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Nombre, email o DNI...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clients Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Lista de Clientes</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if clients %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Cliente</th>
+                                                <th>Contacto</th>
+                                                <th>DNI</th>
+                                                <th>Nacionalidad</th>
+                                                <th>Estado</th>
+                                                <th>Reservas</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for client in clients %}
+                                            <tr class="client-row" 
+                                                data-status="{% if client.active %}active{% else %}inactive{% endif %}" 
+                                                data-type="{% if client.vip %}vip{% else %}regular{% endif %}"
+                                                data-nationality="{{ client.nationality|lower }}"
+                                                data-search="{{ client.full_name|lower }} {{ client.email|lower }} {{ client.dni|lower }}">
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-sm me-3">
+                                                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">{{ client.full_name }}</div>
+                                                            {% if client.vip %}
+                                                            <span class="badge bg-warning">VIP</span>
+                                                            {% endif %}
+                                                            {% if client.birth_date %}
+                                                            <small class="text-muted">{{ client.birth_date|date:"d/m/Y" }}</small>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <div><i class="fas fa-envelope text-muted"></i> {{ client.email }}</div>
+                                                        {% if client.phone %}
+                                                        <div><i class="fas fa-phone text-muted"></i> {{ client.phone }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ client.dni }}</span>
+                                                </td>
+                                                <td>
+                                                    {% if client.nationality %}
+                                                    <span class="badge bg-info">{{ client.nationality }}</span>
+                                                    {% else %}
+                                                    <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{% if client.active %}success{% else %}danger{% endif %}">
+                                                        {% if client.active %}Activo{% else %}Inactivo{% endif %}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="text-center">
+                                                        <div class="fw-bold">{{ client.booking_set.count }}</div>
+                                                        <small class="text-muted">reservas</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-outline-primary btn-sm" onclick="viewClient({{ client.id }})" title="Ver detalles">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning btn-sm" onclick="editClient({{ client.id }})" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-info btn-sm" onclick="viewBookings({{ client.id }})" title="Ver reservas">
+                                                            <i class="fas fa-calendar"></i>
+                                                        </button>
+                                                        {% if client.active %}
+                                                        <button class="btn btn-outline-danger btn-sm" onclick="toggleClient({{ client.id }}, false)" title="Desactivar">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                        {% else %}
+                                                        <button class="btn btn-outline-success btn-sm" onclick="toggleClient({{ client.id }}, true)" title="Activar">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                    <h4 class="text-muted">No hay clientes registrados</h4>
+                                    <p class="text-muted">Comienza agregando el primer cliente</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                                        <i class="fas fa-plus"></i> Agregar Cliente
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal fade" id="addClientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addClientForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" class="form-control" name="first_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Apellido</label>
+                                <input type="text" class="form-control" name="last_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" name="phone">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">DNI</label>
+                                <input type="text" class="form-control" name="dni" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nacionalidad</label>
+                                <input type="text" class="form-control" name="nationality">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Nacimiento</label>
+                                <input type="date" class="form-control" name="birth_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Cliente</label>
+                                <select class="form-select" name="vip">
+                                    <option value="false">Regular</option>
+                                    <option value="true">VIP</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dirección</label>
+                        <textarea class="form-control" name="address" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const nationalityFilter = document.getElementById('nationalityFilter');
+    const searchInput = document.getElementById('searchInput');
+    
+    function filterClients() {
+        const status = statusFilter.value;
+        const type = typeFilter.value;
+        const nationality = nationalityFilter.value.toLowerCase();
+        const search = searchInput.value.toLowerCase();
+        
+        const clients = document.querySelectorAll('.client-row');
+        
+        clients.forEach(client => {
+            const clientStatus = client.dataset.status;
+            const clientType = client.dataset.type;
+            const clientNationality = client.dataset.nationality;
+            const clientSearch = client.dataset.search;
+            
+            const statusMatch = !status || clientStatus === status;
+            const typeMatch = !type || clientType === type;
+            const nationalityMatch = !nationality || clientNationality.includes(nationality);
+            const searchMatch = !search || clientSearch.includes(search);
+            
+            if (statusMatch && typeMatch && nationalityMatch && searchMatch) {
+                client.style.display = 'table-row';
+            } else {
+                client.style.display = 'none';
+            }
+        });
+    }
+    
+    statusFilter.addEventListener('change', filterClients);
+    typeFilter.addEventListener('change', filterClients);
+    nationalityFilter.addEventListener('input', filterClients);
+    searchInput.addEventListener('input', filterClients);
+});
+
+// Client management functions
+function viewClient(clientId) {
+    // Implement view functionality
+    console.log('View client:', clientId);
+}
+
+function editClient(clientId) {
+    // Implement edit functionality
+    console.log('Edit client:', clientId);
+}
+
+function viewBookings(clientId) {
+    // Implement view bookings functionality
+    console.log('View bookings for client:', clientId);
+}
+
+function toggleClient(clientId, active) {
+    // Implement toggle functionality
+    console.log('Toggle client:', clientId, 'Active:', active);
+}
+</script>
+{% endblock %}

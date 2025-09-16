@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item active">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Reportes y Estadísticas</h1>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">
+                                <i class="fas fa-file-pdf"></i> Exportar PDF
+                            </button>
+                            <button class="btn btn-outline-success" onclick="exportReport('excel')">
+                                <i class="fas fa-file-excel"></i> Exportar Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Date Range Filter -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Fecha Desde</label>
+                                    <input type="date" class="form-control" id="dateFrom" value="{{ date_from|default:'' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Fecha Hasta</label>
+                                    <input type="date" class="form-control" id="dateTo" value="{{ date_to|default:'' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Tipo de Reporte</label>
+                                    <select class="form-select" id="reportType">
+                                        <option value="all">Todos</option>
+                                        <option value="bookings">Reservas</option>
+                                        <option value="revenue">Ingresos</option>
+                                        <option value="occupancy">Ocupación</option>
+                                        <option value="clients">Clientes</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button class="btn btn-primary w-100" onclick="generateReport()">
+                                        <i class="fas fa-search"></i> Generar Reporte
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <div class="stats-number">${{ total_revenue|default:0|floatformat:0 }}</div>
+                                <div class="stats-label">Ingresos Totales</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="stats-number">{{ total_bookings|default:0 }}</div>
+                                <div class="stats-label">Reservas Totales</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <div class="stats-number">{{ occupancy_rate|default:0|floatformat:1 }}%</div>
+                                <div class="stats-label">Tasa de Ocupación</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stats-number">{{ new_clients|default:0 }}</div>
+                                <div class="stats-label">Nuevos Clientes</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row mb-4">
+                        <!-- Revenue Chart -->
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Ingresos por Mes</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="revenueChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room Occupancy -->
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Estado de Habitaciones</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="occupancyChart" width="200" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Charts -->
+                    <div class="row mb-4">
+                        <!-- Booking Trends -->
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Tendencia de Reservas</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="bookingTrendChart" width="300" height="150"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Client Demographics -->
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-doughnut"></i> Demografía de Clientes</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="demographicsChart" width="300" height="150"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Reports -->
+                    <div class="row">
+                        <!-- Top Performing Rooms -->
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-trophy"></i> Habitaciones Más Rentables</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Habitación</th>
+                                                    <th>Ingresos</th>
+                                                    <th>Reservas</th>
+                                                    <th>Ocupación</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for room in top_rooms|default:[] %}
+                                                <tr>
+                                                    <td>{{ room.number }}</td>
+                                                    <td>${{ room.revenue|floatformat:0 }}</td>
+                                                    <td>{{ room.bookings }}</td>
+                                                    <td>{{ room.occupancy|floatformat:1 }}%</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">No hay datos disponibles</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-history"></i> Actividad Reciente</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="timeline">
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker bg-success"></div>
+                                            <div class="timeline-content">
+                                                <h6>Nueva reserva</h6>
+                                                <p class="text-muted">Habitación 101 - $150/noche</p>
+                                                <small class="text-muted">Hace 2 horas</small>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker bg-primary"></div>
+                                            <div class="timeline-content">
+                                                <h6>Check-out completado</h6>
+                                                <p class="text-muted">Habitación 205 - Cliente satisfecho</p>
+                                                <small class="text-muted">Hace 4 horas</small>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker bg-warning"></div>
+                                            <div class="timeline-content">
+                                                <h6>Mantenimiento programado</h6>
+                                                <p class="text-muted">Habitación 103 - Limpieza profunda</p>
+                                                <small class="text-muted">Hace 6 horas</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 3px #e9ecef;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    margin-left: 10px;
+}
+
+.timeline-content h6 {
+    margin: 0 0 5px 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.timeline-content p {
+    margin: 0 0 5px 0;
+    font-size: 0.8rem;
+}
+
+.timeline-content small {
+    font-size: 0.7rem;
+}
+</style>
+
+<script>
+// Initialize charts when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+});
+
+function initializeCharts() {
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            datasets: [{
+                label: 'Ingresos ($)',
+                data: [12000, 19000, 15000, 25000, 22000, 30000, 28000, 32000, 29000, 35000, 31000, 38000],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Occupancy Chart
+    const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+    new Chart(occupancyCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ocupadas', 'Disponibles', 'Limpieza', 'Mantenimiento'],
+            datasets: [{
+                data: [65, 25, 8, 2],
+                backgroundColor: [
+                    '#e74c3c',
+                    '#27ae60',
+                    '#3498db',
+                    '#f39c12'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Booking Trend Chart
+    const bookingCtx = document.getElementById('bookingTrendChart').getContext('2d');
+    new Chart(bookingCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+            datasets: [{
+                label: 'Reservas',
+                data: [12, 19, 15, 25, 22, 30, 28],
+                backgroundColor: 'rgba(54, 162, 235, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Demographics Chart
+    const demographicsCtx = document.getElementById('demographicsChart').getContext('2d');
+    new Chart(demographicsCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Nacional', 'Internacional', 'Business', 'Leisure'],
+            datasets: [{
+                data: [45, 25, 20, 10],
+                backgroundColor: [
+                    '#3498db',
+                    '#e74c3c',
+                    '#f39c12',
+                    '#27ae60'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function generateReport() {
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+    const reportType = document.getElementById('reportType').value;
+    
+    console.log('Generating report:', { dateFrom, dateTo, reportType });
+    
+    // Here you would typically make an AJAX call to generate the report
+    alert('Reporte generado para el período seleccionado.');
+}
+
+function exportReport(format) {
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+    
+    console.log('Exporting report as', format, 'for period:', dateFrom, 'to', dateTo);
+    
+    // Here you would typically make an AJAX call to export the report
+    alert(`Reporte exportado como ${format.toUpperCase()}.`);
+}
+</script>
+{% endblock %}

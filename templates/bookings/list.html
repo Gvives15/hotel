@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservas - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item active">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Gestión de Reservas</h1>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBookingModal">
+                            <i class="fas fa-plus"></i> Nueva Reserva
+                        </button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">Todos</option>
+                                        <option value="pending">Pendiente</option>
+                                        <option value="confirmed">Confirmada</option>
+                                        <option value="cancelled">Cancelada</option>
+                                        <option value="completed">Finalizada</option>
+                                        <option value="no_show">No Show</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Pago</label>
+                                    <select class="form-select" id="paymentFilter">
+                                        <option value="">Todos</option>
+                                        <option value="pending">Pendiente</option>
+                                        <option value="paid">Pagado</option>
+                                        <option value="partial">Pago Parcial</option>
+                                        <option value="refunded">Reembolsado</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Fecha Check-in</label>
+                                    <input type="date" class="form-control" id="checkInFilter">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Buscar Cliente</label>
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Nombre del cliente...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bookings Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Lista de Reservas</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if bookings %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Cliente</th>
+                                                <th>Habitación</th>
+                                                <th>Check-in</th>
+                                                <th>Check-out</th>
+                                                <th>Duración</th>
+                                                <th>Total</th>
+                                                <th>Estado</th>
+                                                <th>Pago</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for booking in bookings %}
+                                            <tr class="booking-row" 
+                                                data-status="{{ booking.status }}" 
+                                                data-payment="{{ booking.payment_status }}"
+                                                data-checkin="{{ booking.check_in_date|date:'Y-m-d' }}"
+                                                data-client="{{ booking.client.full_name|lower }}">
+                                                <td>#{{ booking.id }}</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-sm me-2">
+                                                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">{{ booking.client.full_name }}</div>
+                                                            <small class="text-muted">{{ booking.client.email }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ booking.room.number }}</span>
+                                                    <small class="d-block text-muted">{{ booking.room.get_type_display }}</small>
+                                                </td>
+                                                <td>{{ booking.check_in_date|date:"d/m/Y" }}</td>
+                                                <td>{{ booking.check_out_date|date:"d/m/Y" }}</td>
+                                                <td>{{ booking.duration }} días</td>
+                                                <td>
+                                                    <span class="fw-bold text-primary">${{ booking.total_price }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{% if booking.status == 'confirmed' %}success{% elif booking.status == 'pending' %}warning{% elif booking.status == 'cancelled' %}danger{% elif booking.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                                        {{ booking.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{% if booking.payment_status == 'paid' %}success{% elif booking.payment_status == 'partial' %}warning{% elif booking.payment_status == 'refunded' %}info{% else %}danger{% endif %}">
+                                                        {{ booking.get_payment_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-outline-primary btn-sm" onclick="viewBooking({{ booking.id }})" title="Ver detalles">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        {% if booking.status == 'pending' %}
+                                                        <button class="btn btn-outline-success btn-sm" onclick="confirmBooking({{ booking.id }})" title="Confirmar">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                        {% if booking.status in 'pending,confirmed' %}
+                                                        <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking({{ booking.id }})" title="Cancelar">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                        {% if booking.status == 'confirmed' %}
+                                                        <button class="btn btn-outline-info btn-sm" onclick="completeBooking({{ booking.id }})" title="Finalizar">
+                                                            <i class="fas fa-flag-checkered"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                    <h4 class="text-muted">No hay reservas registradas</h4>
+                                    <p class="text-muted">Comienza creando la primera reserva</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBookingModal">
+                                        <i class="fas fa-plus"></i> Crear Reserva
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Booking Modal -->
+<div class="modal fade" id="addBookingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Reserva</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addBookingForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cliente</label>
+                                <select class="form-select" name="client" required>
+                                    <option value="">Seleccionar cliente...</option>
+                                    <!-- Options will be populated via AJAX -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Habitación</label>
+                                <select class="form-select" name="room" required>
+                                    <option value="">Seleccionar habitación...</option>
+                                    <!-- Options will be populated via AJAX -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Check-in</label>
+                                <input type="date" class="form-control" name="check_in_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Check-out</label>
+                                <input type="date" class="form-control" name="check_out_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Número de Huéspedes</label>
+                                <input type="number" class="form-control" name="guests_count" min="1" value="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado de Pago</label>
+                                <select class="form-select" name="payment_status">
+                                    <option value="pending">Pendiente</option>
+                                    <option value="paid">Pagado</option>
+                                    <option value="partial">Pago Parcial</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Solicitudes Especiales</label>
+                        <textarea class="form-control" name="special_requests" rows="3" placeholder="Solicitudes especiales del cliente..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Reserva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const paymentFilter = document.getElementById('paymentFilter');
+    const checkInFilter = document.getElementById('checkInFilter');
+    const searchInput = document.getElementById('searchInput');
+    
+    function filterBookings() {
+        const status = statusFilter.value;
+        const payment = paymentFilter.value;
+        const checkIn = checkInFilter.value;
+        const search = searchInput.value.toLowerCase();
+        
+        const bookings = document.querySelectorAll('.booking-row');
+        
+        bookings.forEach(booking => {
+            const bookingStatus = booking.dataset.status;
+            const bookingPayment = booking.dataset.payment;
+            const bookingCheckIn = booking.dataset.checkin;
+            const bookingClient = booking.dataset.client;
+            
+            const statusMatch = !status || bookingStatus === status;
+            const paymentMatch = !payment || bookingPayment === payment;
+            const checkInMatch = !checkIn || bookingCheckIn === checkIn;
+            const searchMatch = !search || bookingClient.includes(search);
+            
+            if (statusMatch && paymentMatch && checkInMatch && searchMatch) {
+                booking.style.display = 'table-row';
+            } else {
+                booking.style.display = 'none';
+            }
+        });
+    }
+    
+    statusFilter.addEventListener('change', filterBookings);
+    paymentFilter.addEventListener('change', filterBookings);
+    checkInFilter.addEventListener('change', filterBookings);
+    searchInput.addEventListener('input', filterBookings);
+});
+
+// Booking management functions
+function viewBooking(bookingId) {
+    // Implement view functionality
+    console.log('View booking:', bookingId);
+}
+
+function confirmBooking(bookingId) {
+    if (confirm('¿Confirmar esta reserva?')) {
+        // Implement confirm functionality
+        console.log('Confirm booking:', bookingId);
+    }
+}
+
+function cancelBooking(bookingId) {
+    const reason = prompt('Motivo de cancelación:');
+    if (reason !== null) {
+        // Implement cancel functionality
+        console.log('Cancel booking:', bookingId, 'Reason:', reason);
+    }
+}
+
+function completeBooking(bookingId) {
+    if (confirm('¿Finalizar esta reserva?')) {
+        // Implement complete functionality
+        console.log('Complete booking:', bookingId);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfil - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Mi Perfil</h1>
+                        <div class="text-muted">
+                            <i class="fas fa-clock"></i> {{ now|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Profile Information -->
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-user"></i> Información Personal</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Nombre</label>
+                                                    <input type="text" class="form-control" name="first_name" value="{{ user.first_name }}" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Apellido</label>
+                                                    <input type="text" class="form-control" name="last_name" value="{{ user.last_name }}" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Nombre de Usuario</label>
+                                            <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                                            <small class="text-muted">El nombre de usuario no se puede cambiar</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Fecha de Registro</label>
+                                            <input type="text" class="form-control" value="{{ user.date_joined|date:'d/m/Y H:i' }}" readonly>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Último Acceso</label>
+                                            <input type="text" class="form-control" value="{{ user.last_login|date:'d/m/Y H:i' }}" readonly>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Guardar Cambios
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Change Password -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-lock"></i> Cambiar Contraseña</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post" action="{% url 'password_change' %}">
+                                        {% csrf_token %}
+                                        <div class="mb-3">
+                                            <label class="form-label">Contraseña Actual</label>
+                                            <input type="password" class="form-control" name="old_password" required>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Nueva Contraseña</label>
+                                                    <input type="password" class="form-control" name="new_password1" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Confirmar Nueva Contraseña</label>
+                                                    <input type="password" class="form-control" name="new_password2" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-warning">
+                                            <i class="fas fa-key"></i> Cambiar Contraseña
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Sidebar -->
+                        <div class="col-lg-4">
+                            <!-- Profile Card -->
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <div class="avatar-lg mx-auto">
+                                            <i class="fas fa-user-circle fa-6x text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title">{{ user.get_full_name|default:user.username }}</h5>
+                                    <p class="text-muted">{{ user.email }}</p>
+                                    <div class="d-grid">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="uploadAvatar()">
+                                            <i class="fas fa-camera"></i> Cambiar Avatar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account Status -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Estado de la Cuenta</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Estado</span>
+                                        <span class="badge bg-success">Activo</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Verificado</span>
+                                        <span class="badge bg-success">Sí</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Último Acceso</span>
+                                        <small class="text-muted">{{ user.last_login|date:"d/m/Y" }}</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Miembro desde</span>
+                                        <small class="text-muted">{{ user.date_joined|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-bolt"></i> Acciones Rápidas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'settings' %}" class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-cog"></i> Configuración
+                                        </a>
+                                        <button class="btn btn-outline-info btn-sm" onclick="exportData()">
+                                            <i class="fas fa-download"></i> Exportar Datos
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm" onclick="enable2FA()">
+                                            <i class="fas fa-shield-alt"></i> Autenticación 2FA
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteAccount()">
+                                            <i class="fas fa-trash"></i> Eliminar Cuenta
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-lg {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+</style>
+
+<script>
+function uploadAvatar() {
+    // Implement avatar upload functionality
+    console.log('Upload avatar clicked');
+    alert('Función de cambio de avatar en desarrollo.');
+}
+
+function exportData() {
+    // Implement data export functionality
+    console.log('Export data clicked');
+    alert('Función de exportación de datos en desarrollo.');
+}
+
+function enable2FA() {
+    // Implement 2FA functionality
+    console.log('Enable 2FA clicked');
+    alert('Función de autenticación de dos factores en desarrollo.');
+}
+
+function deleteAccount() {
+    if (confirm('¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.')) {
+        // Implement account deletion functionality
+        console.log('Delete account clicked');
+        alert('Función de eliminación de cuenta en desarrollo.');
+    }
+}
+</script>
+{% endblock %}

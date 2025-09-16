@@ -25,7 +25,12 @@ SECRET_KEY = 'django-insecure-i%l@x)-^6@4cfi36r*k7ixgm5hpsi++q07z(*+8r-#w^17h_f&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
+# Configuración de login
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'
 
 
 # Application definition
@@ -45,6 +50,7 @@ INSTALLED_APPS = [
     'app.maintenance',
     'app.rooms',
     'app.users',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -55,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -62,7 +69,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -176,3 +183,8 @@ EMAIL_HOST_PASSWORD = 'ndja tpib ebpp qcbu'      # 👈 Contraseña de aplicaci�
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 EMAIL_SUBJECT_PREFIX = '[O11CE] '
+
+# Configuración para restablecimiento de contraseña
+PASSWORD_RESET_TIMEOUT = 86400  # 24 horas en segundos
+
+CORS_ALLOW_ALL_ORIGINS = True

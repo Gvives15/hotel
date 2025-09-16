@@ -1,0 +1,471 @@
+{% extends 'client/base.html' %}
+
+{% block title %}Mis Reservas - O11CE Hotel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bookings-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        padding: 2rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-subtitle {
+        color: var(--secondary-color);
+        font-size: 1.1rem;
+    }
+    
+    .booking-card {
+        background: var(--light-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--primary-color);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .booking-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .booking-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .booking-number {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+    
+    .booking-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-confirmed {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+    }
+    
+    .status-pending {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: var(--warning-color);
+    }
+    
+    .status-cancelled {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--danger-color);
+    }
+    
+    .status-completed {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: var(--info-color);
+    }
+    
+    .booking-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .detail-label {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+        margin-bottom: 0.25rem;
+    }
+    
+    .detail-value {
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+    
+    .booking-price {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .price-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin-bottom: 0.25rem;
+    }
+    
+    .price-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    
+    .booking-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 6px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--secondary-color);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h4 {
+        color: var(--dark-color);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state p {
+        color: var(--secondary-color);
+        margin-bottom: 2rem;
+    }
+    
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .filter-title {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--dark-color);
+    }
+    
+    .filter-controls {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .filter-controls .form-select {
+        min-width: 150px;
+    }
+    
+    @media (max-width: 768px) {
+        .bookings-container {
+            padding: 1rem;
+        }
+        
+        .booking-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .booking-details {
+            grid-template-columns: 1fr;
+        }
+        
+        .booking-actions {
+            justify-content: center;
+        }
+        
+        .filter-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<section class="py-5">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Mis Reservas</h1>
+            <p class="page-subtitle">Gestiona y revisa todas tus reservas en O11CE Hotel</p>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h5 class="filter-title"><i class="fas fa-filter me-2"></i>Filtrar Reservas</h5>
+            <div class="filter-controls">
+                <select class="form-select" id="statusFilter">
+                    <option value="">Todos los estados</option>
+                    <option value="confirmed">Confirmadas</option>
+                    <option value="pending">Pendientes</option>
+                    <option value="cancelled">Canceladas</option>
+                    <option value="completed">Completadas</option>
+                </select>
+                <select class="form-select" id="dateFilter">
+                    <option value="">Todas las fechas</option>
+                    <option value="upcoming">Próximas</option>
+                    <option value="past">Pasadas</option>
+                    <option value="current">Actuales</option>
+                </select>
+                <button class="btn btn-outline-primary" onclick="applyFilters()">
+                    <i class="fas fa-search me-2"></i>Aplicar Filtros
+                </button>
+                <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                    <i class="fas fa-times me-2"></i>Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- Bookings Container -->
+        <div class="bookings-container">
+            {% if bookings %}
+                {% for booking in bookings %}
+                <div class="booking-card" data-status="{{ booking.status }}" data-date="{{ booking.check_in_date|date:'Y-m-d' }}">
+                    <div class="booking-header">
+                        <div class="booking-number">Reserva #{{ booking.id }}</div>
+                        <div class="booking-status status-{{ booking.status }}">
+                            {{ booking.get_status_display }}
+                        </div>
+                    </div>
+                    
+                    <div class="booking-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Habitación</span>
+                            <span class="detail-value">{{ booking.room.number }} - {{ booking.room.get_type_display }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Check-in</span>
+                            <span class="detail-value">{{ booking.check_in_date|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Check-out</span>
+                            <span class="detail-value">{{ booking.check_out_date|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Huéspedes</span>
+                            <span class="detail-value">{{ booking.guests_count }} persona{{ booking.guests_count|pluralize:"s" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Duración</span>
+                            <span class="detail-value">{{ booking.duration }} día{{ booking.duration|pluralize:"s" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Creada</span>
+                            <span class="detail-value">{{ booking.created_at|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="booking-price">
+                        <div class="price-label">Total a pagar</div>
+                        <div class="price-value">${{ booking.total_price }}</div>
+                    </div>
+                    
+                    <div class="booking-actions">
+                        <a href="{% url 'booking_detail' booking.id %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>Ver Detalles
+                        </a>
+                        {% if booking.status == 'confirmed' %}
+                        <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking({{ booking.id }})">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Empty State -->
+                <div class="empty-state">
+                    <i class="fas fa-calendar-times"></i>
+                    <h4>No tienes reservas</h4>
+                    <p>Aún no has realizado ninguna reserva en nuestro hotel.</p>
+                    <a href="{% url 'booking_step1' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Hacer mi Primera Reserva
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const today = new Date().toISOString().split('T')[0];
+    
+    const bookingCards = document.querySelectorAll('.booking-card');
+    
+    bookingCards.forEach(function(card) {
+        let showCard = true;
+        const status = card.dataset.status;
+        const checkInDate = card.dataset.date;
+        
+        // Filtrar por estado
+        if (statusFilter && status !== statusFilter) {
+            showCard = false;
+        }
+        
+        // Filtrar por fecha
+        if (dateFilter && showCard) {
+            const checkIn = new Date(checkInDate);
+            const todayDate = new Date(today);
+            
+            switch(dateFilter) {
+                case 'upcoming':
+                    showCard = checkIn > todayDate;
+                    break;
+                case 'past':
+                    showCard = checkIn < todayDate;
+                    break;
+                case 'current':
+                    showCard = checkIn.toDateString() === todayDate.toDateString();
+                    break;
+            }
+        }
+        
+        // Mostrar/ocultar tarjeta
+        if (showCard) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Mostrar mensaje si no hay resultados
+    const visibleCards = document.querySelectorAll('.booking-card[style="display: block;"]');
+    const emptyState = document.querySelector('.empty-state');
+    
+    if (visibleCards.length === 0 && emptyState) {
+        emptyState.style.display = 'block';
+        emptyState.innerHTML = `
+            <i class="fas fa-search"></i>
+            <h4>No se encontraron reservas</h4>
+            <p>No hay reservas que coincidan con los filtros seleccionados.</p>
+            <button class="btn btn-outline-primary" onclick="clearFilters()">
+                <i class="fas fa-times me-2"></i>Limpiar Filtros
+            </button>
+        `;
+    } else if (emptyState) {
+        emptyState.style.display = 'none';
+    }
+}
+
+function clearFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+    
+    const bookingCards = document.querySelectorAll('.booking-card');
+    bookingCards.forEach(function(card) {
+        card.style.display = 'block';
+    });
+    
+    // Restaurar estado vacío original si no hay reservas
+    const emptyState = document.querySelector('.empty-state');
+    if (emptyState && bookingCards.length === 0) {
+        emptyState.style.display = 'block';
+        emptyState.innerHTML = `
+            <i class="fas fa-calendar-times"></i>
+            <h4>No tienes reservas</h4>
+            <p>Aún no has realizado ninguna reserva en nuestro hotel.</p>
+            <a href="{% url 'booking_step1' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Hacer mi Primera Reserva
+            </a>
+        `;
+    }
+}
+
+function cancelBooking(bookingId) {
+    if (confirm('¿Estás seguro de que deseas cancelar esta reserva? Esta acción no se puede deshacer.')) {
+        // Obtener el botón que se hizo clic
+        const cancelBtn = event.target.closest('.btn');
+        const originalText = cancelBtn.innerHTML;
+        
+        // Mostrar loading
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cancelando...';
+        cancelBtn.disabled = true;
+        
+        // Realizar petición AJAX
+        fetch(`/bookings/${bookingId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                alert(data.message);
+                // Recargar la página para actualizar la lista
+                window.location.reload();
+            } else {
+                // Mostrar error
+                alert('Error: ' + data.message);
+                // Restaurar botón
+                cancelBtn.innerHTML = originalText;
+                cancelBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la reserva. Por favor, intenta de nuevo.');
+            // Restaurar botón
+            cancelBtn.innerHTML = originalText;
+            cancelBtn.disabled = false;
+        });
+    }
+}
+
+// Aplicar filtros automáticamente cuando cambien los selectores
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    
+    statusFilter.addEventListener('change', applyFilters);
+    dateFilter.addEventListener('change', applyFilters);
+});
+</script>
+{% endblock %}

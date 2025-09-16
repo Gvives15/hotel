@@ -1,0 +1,432 @@
+{% extends 'client/base.html' %}
+
+{% block title %}Detalle de Reserva - O11CE Hotel{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8 hero-content">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb text-white">
+                        <li class="breadcrumb-item"><a href="{% url 'client_index' %}" class="text-white">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'client_my_bookings' %}" class="text-white">Mis Reservas</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Detalle</li>
+                    </ol>
+                </nav>
+                <h1 class="display-4 fw-bold mb-4">Detalle de Reserva</h1>
+                <p class="lead mb-4">
+                    Reserva #{{ booking.id }} - {{ booking.room.get_type_display }}
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    {% if booking.status == 'pending' %}
+                    <span class="badge bg-warning text-dark fs-6">
+                        <i class="fas fa-clock me-2"></i>Pendiente de Confirmación
+                    </span>
+                    {% elif booking.status == 'confirmed' %}
+                    <span class="badge bg-success fs-6">
+                        <i class="fas fa-check me-2"></i>Confirmada
+                    </span>
+                    {% elif booking.status == 'active' %}
+                    <span class="badge bg-primary fs-6">
+                        <i class="fas fa-play me-2"></i>Activa
+                    </span>
+                    {% elif booking.status == 'completed' %}
+                    <span class="badge bg-secondary fs-6">
+                        <i class="fas fa-flag-checkered me-2"></i>Completada
+                    </span>
+                    {% elif booking.status == 'cancelled' %}
+                    <span class="badge bg-danger fs-6">
+                        <i class="fas fa-times me-2"></i>Cancelada
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Booking Details -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Room Information -->
+                <div class="client-card mb-4">
+                    <div class="card-body">
+                        <h3 class="fw-bold mb-4">Información de la Habitación</h3>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <img src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" 
+                                     class="img-fluid rounded" alt="Habitación {{ booking.room.number }}">
+                            </div>
+                            <div class="col-md-8">
+                                <h4 class="fw-bold">{{ booking.room.get_type_display }}</h4>
+                                <p class="text-muted">Habitación {{ booking.room.number }} - Piso {{ booking.room.floor }}</p>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Capacidad</small>
+                                        <strong>{{ booking.room.capacity }} personas</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Precio por noche</small>
+                                        <strong class="price-display">${{ booking.room.price }}</strong>
+                                    </div>
+                                </div>
+                                
+                                <p class="mb-3">{{ booking.room.description }}</p>
+                                
+                                <a href="{% url 'client_room_detail' booking.room.id %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-eye me-2"></i>Ver Detalles de la Habitación
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Booking Information -->
+                <div class="client-card mb-4">
+                    <div class="card-body">
+                        <h3 class="fw-bold mb-4">Detalles de la Reserva</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">Fechas</h5>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Fecha de llegada</small>
+                                    <strong>{{ booking.check_in_date|date:"l, d/m/Y" }}</strong>
+                                    <small class="text-muted d-block">Check-in: 15:00</small>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Fecha de salida</small>
+                                    <strong>{{ booking.check_out_date|date:"l, d/m/Y" }}</strong>
+                                    <small class="text-muted d-block">Check-out: 11:00</small>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Duración</small>
+                                    <strong>{{ booking.duration }} noche{{ booking.duration|pluralize:"s" }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">Huéspedes</h5>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Número de huéspedes</small>
+                                    <strong>{{ booking.guests_count }} persona{{ booking.guests_count|pluralize:"s" }}</strong>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Estado de pago</small>
+                                    {% if booking.payment_status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock me-1"></i>Pendiente
+                                    </span>
+                                    {% elif booking.payment_status == 'paid' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Pagado
+                                    </span>
+                                    {% elif booking.payment_status == 'partial' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-percentage me-1"></i>Parcial
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block">Fecha de reserva</small>
+                                    <strong>{{ booking.created_at|date:"d/m/Y H:i" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if booking.special_requests %}
+                        <hr class="my-4">
+                        <h5 class="fw-bold mb-3">Solicitudes Especiales</h5>
+                        <p class="mb-0">{{ booking.special_requests }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Pricing Breakdown -->
+                <div class="client-card mb-4">
+                    <div class="card-body">
+                        <h3 class="fw-bold mb-4">Desglose de Precios</h3>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Precio por noche:</span>
+                                    <span>${{ booking.room.price }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Número de noches:</span>
+                                    <span>{{ booking.duration }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Subtotal:</span>
+                                    <span>${{ booking.room.price|multiply:booking.duration }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Impuestos (10%):</span>
+                                    <span>${{ booking.room.price|multiply:booking.duration|multiply:0.1|floatformat:2 }}</span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Total:</span>
+                                    <span class="price-display">${{ booking.total_price }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="bg-light rounded p-3">
+                                    <h6 class="fw-bold mb-2">Estado de Pago</h6>
+                                    {% if booking.payment_status == 'pending' %}
+                                    <div class="text-warning">
+                                        <i class="fas fa-clock fa-2x mb-2"></i>
+                                        <p class="mb-0 small">Pendiente</p>
+                                    </div>
+                                    {% elif booking.payment_status == 'paid' %}
+                                    <div class="text-success">
+                                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                        <p class="mb-0 small">Pagado</p>
+                                    </div>
+                                    {% elif booking.payment_status == 'partial' %}
+                                    <div class="text-info">
+                                        <i class="fas fa-percentage fa-2x mb-2"></i>
+                                        <p class="mb-0 small">Parcial</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="client-card mb-4">
+                    <div class="card-body">
+                        <h3 class="fw-bold mb-4">Acciones</h3>
+                        <div class="d-flex gap-3 flex-wrap">
+                            {% if booking.status == 'pending' or booking.status == 'confirmed' %}
+                            <button type="button" class="btn btn-outline-danger" 
+                                    onclick="confirmCancel('{{ booking.id }}', '{{ booking.room.get_type_display }}')">
+                                <i class="fas fa-times me-2"></i>Cancelar Reserva
+                            </button>
+                            {% endif %}
+                            
+                            {% if booking.status == 'confirmed' %}
+                            <button type="button" class="btn btn-outline-primary">
+                                <i class="fas fa-edit me-2"></i>Modificar Reserva
+                            </button>
+                            {% endif %}
+                            
+                            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                                <i class="fas fa-print me-2"></i>Imprimir
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-info">
+                                <i class="fas fa-download me-2"></i>Descargar PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <div class="client-card sticky-top" style="top: 2rem;">
+                    <div class="card-body">
+                        <h4 class="fw-bold mb-4">Resumen</h4>
+                        
+                        <!-- Status Timeline -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">Estado de la Reserva</h6>
+                            <div class="timeline">
+                                <div class="timeline-item active">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Reserva Creada</h6>
+                                        <small class="text-muted">{{ booking.created_at|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                </div>
+                                
+                                {% if booking.status != 'pending' %}
+                                <div class="timeline-item active">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Confirmada</h6>
+                                        <small class="text-muted">{{ booking.updated_at|date:"d/m/Y H:i" }}</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-light"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1 text-muted">Pendiente de Confirmación</h6>
+                                        <small class="text-muted">En proceso</small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if booking.status == 'active' or booking.status == 'completed' %}
+                                <div class="timeline-item active">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Check-in Realizado</h6>
+                                        <small class="text-muted">{{ booking.check_in_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-light"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1 text-muted">Check-in</h6>
+                                        <small class="text-muted">{{ booking.check_in_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if booking.status == 'completed' %}
+                                <div class="timeline-item active">
+                                    <div class="timeline-marker bg-success"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">Completada</h6>
+                                        <small class="text-muted">{{ booking.check_out_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-light"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1 text-muted">Check-out</h6>
+                                        <small class="text-muted">{{ booking.check_out_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Important Information -->
+                        <div class="alert alert-info">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2"></i>Información Importante</h6>
+                            <ul class="mb-0 small">
+                                <li>Check-in: 15:00</li>
+                                <li>Check-out: 11:00</li>
+                                <li>Cancelación gratuita hasta 24h antes</li>
+                                <li>Pago al momento del check-in</li>
+                            </ul>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <div class="text-center">
+                            <p class="text-muted small mb-2">¿Necesitas ayuda?</p>
+                            <div class="d-grid gap-2">
+                                <a href="tel:+1234567890" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-phone me-2"></i>Llamar
+                                </a>
+                                <a href="mailto:soporte@o11ce.com" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-envelope me-2"></i>Email
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Cancel Booking Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Cancelación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres cancelar tu reserva para <strong id="cancelRoomName"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Importante:</strong> Las cancelaciones realizadas con menos de 24 horas de anticipación 
+                    pueden incurrir en cargos del 50% del valor total.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" id="cancelForm" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-2"></i>Sí, Cancelar Reserva
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -22px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+    }
+    
+    .timeline-item.active .timeline-marker {
+        background: var(--success-color);
+    }
+    
+    .timeline-content h6 {
+        margin-bottom: 5px;
+    }
+    
+    @media print {
+        .client-header,
+        .client-footer,
+        .btn,
+        .modal {
+            display: none !important;
+        }
+        
+        .client-card {
+            border: 1px solid #000 !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmCancel(bookingId, roomName) {
+        document.getElementById('cancelRoomName').textContent = roomName;
+        document.getElementById('cancelForm').action = `/portal/my-bookings/${bookingId}/cancel/`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

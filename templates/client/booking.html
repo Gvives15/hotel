@@ -1,0 +1,348 @@
+{% extends 'client/base.html' %}
+
+{% block title %}Reservar Habitación - O11CE Hotel{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8 hero-content">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb text-white">
+                        <li class="breadcrumb-item"><a href="{% url 'client_index' %}" class="text-white">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'client_rooms' %}" class="text-white">Habitaciones</a></li>
+                        {% if room %}
+                        <li class="breadcrumb-item"><a href="{% url 'client_room_detail' room.id %}" class="text-white">{{ room.get_type_display }}</a></li>
+                        {% endif %}
+                        <li class="breadcrumb-item active" aria-current="page">Reservar</li>
+                    </ol>
+                </nav>
+                <h1 class="display-4 fw-bold mb-4">Reservar Habitación</h1>
+                <p class="lead mb-4">
+                    Completa el formulario para confirmar tu reserva y disfrutar de una estadía inolvidable.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Booking Form -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Booking Form -->
+            <div class="col-lg-8">
+                <div class="booking-form">
+                    <h2 class="fw-bold mb-4">Información de la Reserva</h2>
+                    
+                    <form method="POST" onsubmit="return validateBookingForm(this)">
+                        {% csrf_token %}
+                        
+                        <!-- Room Selection (if not pre-selected) -->
+                        {% if not room %}
+                        <div class="mb-4">
+                            <label for="room" class="form-label fw-bold">Seleccionar Habitación *</label>
+                            <select class="form-select" id="room" name="room" required>
+                                <option value="">Elige una habitación</option>
+                                {% for available_room in available_rooms %}
+                                <option value="{{ available_room.id }}" data-price="{{ available_room.price }}">
+                                    {{ available_room.get_type_display }} - Habitación {{ available_room.number }} 
+                                    ({{ available_room.capacity }} personas) - ${{ available_room.price }}/noche
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% else %}
+                        <input type="hidden" name="room" value="{{ room.id }}">
+                        {% endif %}
+                        
+                        <!-- Dates -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Fechas de Estadía *</label>
+                            <div class="date-inputs">
+                                <div>
+                                    <label for="check_in" class="form-label">Fecha de Llegada</label>
+                                    <input type="date" class="form-control" id="check_in" name="check_in" 
+                                           required onchange="calculatePrice()">
+                                </div>
+                                <div>
+                                    <label for="check_out" class="form-label">Fecha de Salida</label>
+                                    <input type="date" class="form-control" id="check_out" name="check_out" 
+                                           required onchange="calculatePrice()">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Guest Information -->
+                        <div class="mb-4">
+                            <label for="guests_count" class="form-label fw-bold">Número de Huéspedes *</label>
+                            <select class="form-select" id="guests_count" name="guests_count" required>
+                                <option value="">Selecciona el número de huéspedes</option>
+                                <option value="1">1 persona</option>
+                                <option value="2">2 personas</option>
+                                <option value="3">3 personas</option>
+                                <option value="4">4 personas</option>
+                                <option value="5">5 personas</option>
+                                <option value="6">6+ personas</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Special Requests -->
+                        <div class="mb-4">
+                            <label for="special_requests" class="form-label fw-bold">Solicitudes Especiales</label>
+                            <textarea class="form-control" id="special_requests" name="special_requests" 
+                                      rows="4" placeholder="¿Tienes alguna solicitud especial? (opcional)"></textarea>
+                        </div>
+                        
+                        <!-- Contact Information -->
+                        <div class="mb-4">
+                            <h5 class="fw-bold mb-3">Información de Contacto</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="contact_phone" class="form-label">Teléfono de Contacto</label>
+                                    <input type="tel" class="form-control" id="contact_phone" name="contact_phone" 
+                                           placeholder="+1 (234) 567-890">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="contact_email" class="form-label">Email de Contacto</label>
+                                    <input type="email" class="form-control" id="contact_email" name="contact_email" 
+                                           value="{{ user.email }}" placeholder="tu@email.com">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Terms and Conditions -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    Acepto los <a href="#" class="text-primary">términos y condiciones</a> y la 
+                                    <a href="#" class="text-primary">política de privacidad</a> *
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-calendar-check me-2"></i>Confirmar Reserva
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Booking Summary -->
+            <div class="col-lg-4">
+                <div class="client-card sticky-top" style="top: 2rem;">
+                    <div class="card-body">
+                        <h4 class="fw-bold mb-4">Resumen de la Reserva</h4>
+                        
+                        {% if room %}
+                        <!-- Selected Room Info -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80" 
+                                     class="rounded me-3" style="width: 80px; height: 60px; object-fit: cover;" alt="Habitación">
+                                <div>
+                                    <h6 class="fw-bold mb-1">{{ room.get_type_display }}</h6>
+                                    <small class="text-muted">Habitación {{ room.number }}</small>
+                                </div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Capacidad</small>
+                                    <strong>{{ room.capacity }} personas</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Piso</small>
+                                    <strong>{{ room.floor }}</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Precio</small>
+                                    <strong>${{ room.price }}/noche</strong>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Price Calculation -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Precio por noche:</span>
+                                <span id="price_per_night">${{ room.price|default:"0" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Número de noches:</span>
+                                <span id="nights_count">0</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total estimado:</span>
+                                <span id="total_price" class="price-display">$0.00</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Important Notes -->
+                        <div class="alert alert-info">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2"></i>Información Importante</h6>
+                            <ul class="mb-0 small">
+                                <li>Check-in: 15:00</li>
+                                <li>Check-out: 11:00</li>
+                                <li>Cancelación gratuita hasta 24h antes</li>
+                                <li>Pago al momento del check-in</li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Contact Info -->
+                        <div class="text-center">
+                            <p class="text-muted small mb-2">¿Necesitas ayuda?</p>
+                            <a href="tel:+1234567890" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-phone me-2"></i>Llamar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Why Book With Us -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row text-center mb-4">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="fw-bold mb-3">¿Por qué reservar con nosotros?</h2>
+                <p class="text-muted">Ofrecemos las mejores garantías para tu tranquilidad</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-gradient-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-shield-alt fa-lg"></i>
+                    </div>
+                    <h5 class="fw-bold">Reserva Segura</h5>
+                    <p class="text-muted small">Tu información está protegida con encriptación SSL</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-gradient-accent text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-undo fa-lg"></i>
+                    </div>
+                    <h5 class="fw-bold">Cancelación Gratuita</h5>
+                    <p class="text-muted small">Cancela sin cargo hasta 24 horas antes</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-gradient-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-headset fa-lg"></i>
+                    </div>
+                    <h5 class="fw-bold">Soporte 24/7</h5>
+                    <p class="text-muted small">Estamos disponibles para ayudarte en cualquier momento</p>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-gradient-accent text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-medal fa-lg"></i>
+                    </div>
+                    <h5 class="fw-bold">Mejor Precio</h5>
+                    <p class="text-muted small">Garantizamos los mejores precios del mercado</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Set minimum date to today
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('check_in').min = today;
+        document.getElementById('check_out').min = today;
+        
+        // Set check-out minimum to check-in date
+        document.getElementById('check_in').addEventListener('change', function() {
+            document.getElementById('check_out').min = this.value;
+            calculatePrice();
+        });
+        
+        // Update price when room selection changes
+        const roomSelect = document.getElementById('room');
+        if (roomSelect) {
+            roomSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const price = selectedOption.getAttribute('data-price') || 0;
+                document.getElementById('price_per_night').textContent = '$' + price;
+                calculatePrice();
+            });
+        }
+    });
+    
+    function calculatePrice() {
+        const checkIn = document.getElementById('check_in').value;
+        const checkOut = document.getElementById('check_out').value;
+        const pricePerNight = document.getElementById('price_per_night').textContent.replace('$', '');
+        const price = parseFloat(pricePerNight) || 0;
+        
+        if (checkIn && checkOut && price > 0) {
+            const checkInDate = new Date(checkIn);
+            const checkOutDate = new Date(checkOut);
+            
+            if (checkOutDate > checkInDate) {
+                const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+                const total = nights * price;
+                
+                document.getElementById('nights_count').textContent = nights;
+                document.getElementById('total_price').textContent = '$' + total.toFixed(2);
+            } else {
+                document.getElementById('nights_count').textContent = '0';
+                document.getElementById('total_price').textContent = '$0.00';
+            }
+        }
+    }
+    
+    function validateBookingForm(form) {
+        const checkIn = document.getElementById('check_in').value;
+        const checkOut = document.getElementById('check_out').value;
+        const guestsCount = document.getElementById('guests_count').value;
+        const terms = document.getElementById('terms').checked;
+        
+        if (!checkIn || !checkOut || !guestsCount || !terms) {
+            alert('Por favor completa todos los campos requeridos.');
+            return false;
+        }
+        
+        const checkInDate = new Date(checkIn);
+        const checkOutDate = new Date(checkOut);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (checkInDate < today) {
+            alert('La fecha de llegada no puede ser anterior a hoy.');
+            return false;
+        }
+        
+        if (checkOutDate <= checkInDate) {
+            alert('La fecha de salida debe ser posterior a la fecha de llegada.');
+            return false;
+        }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+        submitBtn.disabled = true;
+        
+        return true;
+    }
+</script>
+{% endblock %}

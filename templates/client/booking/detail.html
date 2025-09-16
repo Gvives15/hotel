@@ -1,0 +1,425 @@
+{% extends 'client/base.html' %}
+
+{% block title %}Reserva #{{ booking.id }} - O11CE Hotel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .booking-detail-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        padding: 2.5rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .booking-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .booking-status {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+    }
+    
+    .status-confirmed {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+    }
+    
+    .status-pending {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: var(--warning-color);
+    }
+    
+    .status-cancelled {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--danger-color);
+    }
+    
+    .status-completed {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: var(--info-color);
+    }
+    
+    .booking-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+    
+    .booking-date {
+        color: var(--secondary-color);
+        font-size: 1.1rem;
+    }
+    
+    .detail-section {
+        margin-bottom: 2rem;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+    
+    .section-title i {
+        margin-right: 0.5rem;
+        color: var(--primary-color);
+    }
+    
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .detail-card {
+        background: var(--light-color);
+        border-radius: 8px;
+        padding: 1.5rem;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+    
+    .detail-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .detail-label {
+        font-weight: 500;
+        color: var(--secondary-color);
+    }
+    
+    .detail-value {
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+    
+    .price-section {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .price-section h4 {
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .price-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .price-item:last-child {
+        margin-bottom: 0;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .btn-cancel {
+        background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancel:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: white;
+    }
+    
+    .success-message {
+        background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .success-message i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .success-message h4 {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+        .booking-detail-container {
+            padding: 1.5rem;
+        }
+        
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<section class="py-5">
+    <div class="container">
+        <!-- Success Message -->
+        {% if messages %}
+        <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <h4>¡Reserva Confirmada!</h4>
+            <p>Tu reserva ha sido procesada exitosamente. Recibirás una confirmación por email con todos los detalles.</p>
+        </div>
+        {% endif %}
+
+        <!-- Booking Detail Container -->
+        <div class="booking-detail-container">
+            <!-- Header -->
+            <div class="booking-header">
+                <div class="booking-status status-{{ booking.status }}">
+                    {{ booking.get_status_display }}
+                </div>
+                <h1 class="booking-number">Reserva #{{ booking.id }}</h1>
+                <p class="booking-date">Creada el {{ booking.created_at|date:"d/m/Y H:i" }}</p>
+            </div>
+
+            <!-- Booking Details -->
+            <div class="detail-section">
+                <h3 class="section-title">
+                    <i class="fas fa-calendar-check"></i>
+                    Detalles de la Reserva
+                </h3>
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Fechas</h5>
+                        <div class="detail-item">
+                            <span class="detail-label">Fecha de llegada:</span>
+                            <span class="detail-value">{{ booking.check_in_date|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Fecha de salida:</span>
+                            <span class="detail-value">{{ booking.check_out_date|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Duración:</span>
+                            <span class="detail-value">{{ booking.duration }} día{{ booking.duration|pluralize:"s" }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-card">
+                        <h5 class="mb-3"><i class="fas fa-users me-2"></i>Huéspedes</h5>
+                        <div class="detail-item">
+                            <span class="detail-label">Número de personas:</span>
+                            <span class="detail-value">{{ booking.guests_count }} persona{{ booking.guests_count|pluralize:"s" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Nombre:</span>
+                            <span class="detail-value">{{ booking.client.full_name }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Email:</span>
+                            <span class="detail-value">{{ booking.client.email }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-card">
+                        <h5 class="mb-3"><i class="fas fa-bed me-2"></i>Habitación</h5>
+                        <div class="detail-item">
+                            <span class="detail-label">Número:</span>
+                            <span class="detail-value">{{ booking.room.number }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Tipo:</span>
+                            <span class="detail-value">{{ booking.room.get_type_display }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Piso:</span>
+                            <span class="detail-value">{{ booking.room.floor }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Breakdown -->
+            <div class="price-section">
+                <h4><i class="fas fa-calculator me-2"></i>Desglose de Precios</h4>
+                <div class="price-item">
+                    <span>Precio por noche:</span>
+                    <span>${{ booking.room.price }}</span>
+                </div>
+                <div class="price-item">
+                    <span>Número de noches:</span>
+                    <span>{{ booking.duration }}</span>
+                </div>
+                <div class="price-item">
+                    <span>Total a pagar:</span>
+                    <span>${{ booking.total_price }}</span>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            {% if booking.special_requests %}
+            <div class="detail-section">
+                <h3 class="section-title">
+                    <i class="fas fa-comment"></i>
+                    Solicitudes Especiales
+                </h3>
+                <div class="detail-card">
+                    <p class="mb-0">{{ booking.special_requests }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Payment Information -->
+            <div class="detail-section">
+                <h3 class="section-title">
+                    <i class="fas fa-credit-card"></i>
+                    Información de Pago
+                </h3>
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Estado del Pago</h5>
+                        <div class="detail-item">
+                            <span class="detail-label">Estado:</span>
+                            <span class="detail-value">{{ booking.get_payment_status_display }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Método:</span>
+                            <span class="detail-value">Pago al llegar</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-card">
+                        <h5 class="mb-3"><i class="fas fa-clock me-2"></i>Horarios</h5>
+                        <div class="detail-item">
+                            <span class="detail-label">Check-in:</span>
+                            <span class="detail-value">A partir de las 14:00</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Check-out:</span>
+                            <span class="detail-value">Hasta las 11:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <a href="{% url 'client_my_bookings' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-list me-2"></i>Ver Todas mis Reservas
+                </a>
+                <a href="{% url 'client_index' %}" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Volver al Inicio
+                </a>
+                {% if booking.status == 'confirmed' %}
+                <button type="button" class="btn btn-cancel" onclick="cancelBooking()">
+                    <i class="fas fa-times me-2"></i>Cancelar Reserva
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function cancelBooking() {
+    if (confirm('¿Estás seguro de que deseas cancelar esta reserva? Esta acción no se puede deshacer.')) {
+        // Mostrar loading
+        const cancelBtn = document.querySelector('.btn-cancel');
+        const originalText = cancelBtn.innerHTML;
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Cancelando...';
+        cancelBtn.disabled = true;
+        
+        // Realizar petición AJAX
+        fetch(`/bookings/{{ booking.id }}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                alert(data.message);
+                // Redirigir a la lista de reservas
+                window.location.href = data.redirect_url;
+            } else {
+                // Mostrar error
+                alert('Error: ' + data.message);
+                // Restaurar botón
+                cancelBtn.innerHTML = originalText;
+                cancelBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la reserva. Por favor, intenta de nuevo.');
+            // Restaurar botón
+            cancelBtn.innerHTML = originalText;
+            cancelBtn.disabled = false;
+        });
+    }
+}
+
+// Auto-hide success message after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const successMessage = document.querySelector('.success-message');
+    if (successMessage) {
+        setTimeout(function() {
+            successMessage.style.opacity = '0';
+            setTimeout(function() {
+                successMessage.style.display = 'none';
+            }, 300);
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

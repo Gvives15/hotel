@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+
+{% block title %}Mantenimiento - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item active">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Gestión de Mantenimiento</h1>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">
+                            <i class="fas fa-plus"></i> Nueva Solicitud
+                        </button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                                <div class="stats-number">{{ requests|length }}</div>
+                                <div class="stats-label">Total Solicitudes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stats-number">{{ urgent_requests|default:0 }}</div>
+                                <div class="stats-label">Urgentes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stats-number">{{ pending_requests|default:0 }}</div>
+                                <div class="stats-label">Pendientes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stats-number">{{ completed_requests|default:0 }}</div>
+                                <div class="stats-label">Completadas</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">Todos</option>
+                                        <option value="pending">Pendiente</option>
+                                        <option value="in_progress">En Progreso</option>
+                                        <option value="completed">Completada</option>
+                                        <option value="cancelled">Cancelada</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Prioridad</label>
+                                    <select class="form-select" id="priorityFilter">
+                                        <option value="">Todas</option>
+                                        <option value="low">Baja</option>
+                                        <option value="medium">Media</option>
+                                        <option value="high">Alta</option>
+                                        <option value="urgent">Urgente</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Categoría</label>
+                                    <select class="form-select" id="categoryFilter">
+                                        <option value="">Todas</option>
+                                        <option value="electrical">Eléctrico</option>
+                                        <option value="plumbing">Plomería</option>
+                                        <option value="hvac">Climatización</option>
+                                        <option value="furniture">Mobiliario</option>
+                                        <option value="structural">Estructural</option>
+                                        <option value="other">Otros</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Buscar</label>
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Habitación o descripción...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Maintenance Requests -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Solicitudes de Mantenimiento</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if requests %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Habitación</th>
+                                                <th>Categoría</th>
+                                                <th>Descripción</th>
+                                                <th>Prioridad</th>
+                                                <th>Estado</th>
+                                                <th>Fecha Reporte</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for request in requests %}
+                                            <tr class="maintenance-row" 
+                                                data-status="{{ request.status }}" 
+                                                data-priority="{{ request.priority }}"
+                                                data-category="{{ request.category }}"
+                                                data-search="{{ request.room.number|lower }} {{ request.description|lower }}">
+                                                <td>#{{ request.id }}</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-sm me-2">
+                                                            <i class="fas fa-bed fa-lg text-primary"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">{{ request.room.number }}</div>
+                                                            <small class="text-muted">{{ request.room.get_type_display }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ request.get_category_display }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="text-truncate" style="max-width: 200px;" title="{{ request.description }}">
+                                                        {{ request.description }}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{% if request.priority == 'urgent' %}danger{% elif request.priority == 'high' %}warning{% elif request.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                                                        {{ request.get_priority_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{% if request.status == 'completed' %}success{% elif request.status == 'in_progress' %}warning{% elif request.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                                        {{ request.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div>{{ request.created_at|date:"d/m/Y" }}</div>
+                                                    <small class="text-muted">{{ request.created_at|time:"H:i" }}</small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-outline-primary btn-sm" onclick="viewRequest({{ request.id }})" title="Ver detalles">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        {% if request.status == 'pending' %}
+                                                        <button class="btn btn-outline-warning btn-sm" onclick="startRequest({{ request.id }})" title="Iniciar">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                        {% if request.status == 'in_progress' %}
+                                                        <button class="btn btn-outline-success btn-sm" onclick="completeRequest({{ request.id }})" title="Completar">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                        {% if request.status in 'pending,in_progress' %}
+                                                        <button class="btn btn-outline-danger btn-sm" onclick="cancelRequest({{ request.id }})" title="Cancelar">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-tools fa-3x text-muted mb-3"></i>
+                                    <h4 class="text-muted">No hay solicitudes de mantenimiento</h4>
+                                    <p class="text-muted">Comienza creando la primera solicitud</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMaintenanceModal">
+                                        <i class="fas fa-plus"></i> Crear Solicitud
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Maintenance Request Modal -->
+<div class="modal fade" id="addMaintenanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Solicitud de Mantenimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addMaintenanceForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Habitación</label>
+                                <select class="form-select" name="room" required>
+                                    <option value="">Seleccionar habitación...</option>
+                                    <!-- Options will be populated via AJAX -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Categoría</label>
+                                <select class="form-select" name="category" required>
+                                    <option value="">Seleccionar categoría...</option>
+                                    <option value="electrical">Eléctrico</option>
+                                    <option value="plumbing">Plomería</option>
+                                    <option value="hvac">Climatización</option>
+                                    <option value="furniture">Mobiliario</option>
+                                    <option value="structural">Estructural</option>
+                                    <option value="other">Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Prioridad</label>
+                                <select class="form-select" name="priority" required>
+                                    <option value="low">Baja</option>
+                                    <option value="medium" selected>Media</option>
+                                    <option value="high">Alta</option>
+                                    <option value="urgent">Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Reportado por</label>
+                                <input type="text" class="form-control" name="reported_by" value="{{ user.get_full_name|default:user.username }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción del Problema</label>
+                        <textarea class="form-control" name="description" rows="4" placeholder="Describe detalladamente el problema..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notas Adicionales</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Notas adicionales o instrucciones..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Solicitud</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const priorityFilter = document.getElementById('priorityFilter');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const searchInput = document.getElementById('searchInput');
+    
+    function filterRequests() {
+        const status = statusFilter.value;
+        const priority = priorityFilter.value;
+        const category = categoryFilter.value;
+        const search = searchInput.value.toLowerCase();
+        
+        const requests = document.querySelectorAll('.maintenance-row');
+        
+        requests.forEach(request => {
+            const requestStatus = request.dataset.status;
+            const requestPriority = request.dataset.priority;
+            const requestCategory = request.dataset.category;
+            const requestSearch = request.dataset.search;
+            
+            const statusMatch = !status || requestStatus === status;
+            const priorityMatch = !priority || requestPriority === priority;
+            const categoryMatch = !category || requestCategory === category;
+            const searchMatch = !search || requestSearch.includes(search);
+            
+            if (statusMatch && priorityMatch && categoryMatch && searchMatch) {
+                request.style.display = 'table-row';
+            } else {
+                request.style.display = 'none';
+            }
+        });
+    }
+    
+    statusFilter.addEventListener('change', filterRequests);
+    priorityFilter.addEventListener('change', filterRequests);
+    categoryFilter.addEventListener('change', filterRequests);
+    searchInput.addEventListener('input', filterRequests);
+});
+
+// Request management functions
+function viewRequest(requestId) {
+    // Implement view functionality
+    console.log('View request:', requestId);
+}
+
+function startRequest(requestId) {
+    if (confirm('¿Iniciar esta solicitud de mantenimiento?')) {
+        // Implement start functionality
+        console.log('Start request:', requestId);
+    }
+}
+
+function completeRequest(requestId) {
+    if (confirm('¿Marcar esta solicitud como completada?')) {
+        // Implement complete functionality
+        console.log('Complete request:', requestId);
+    }
+}
+
+function cancelRequest(requestId) {
+    const reason = prompt('Motivo de cancelación:');
+    if (reason !== null) {
+        // Implement cancel functionality
+        console.log('Cancel request:', requestId, 'Reason:', reason);
+    }
+}
+</script>
+{% endblock %}

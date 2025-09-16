@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item active">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Dashboard</h1>
+                        <div class="text-muted">
+                            <i class="fas fa-clock"></i> {{ now|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                    <i class="fas fa-bed"></i>
+                                </div>
+                                <div class="stats-number">{{ total_rooms }}</div>
+                                <div class="stats-label">Total Habitaciones</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stats-number">{{ available_rooms }}</div>
+                                <div class="stats-label">Disponibles</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div class="stats-number">{{ occupied_rooms }}</div>
+                                <div class="stats-label">Ocupadas</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <div class="stats-number">${{ total_revenue|floatformat:0 }}</div>
+                                <div class="stats-label">Ingresos del Mes</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Acciones Rápidas</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'bookings' %}" class="btn btn-primary w-100">
+                                                <i class="fas fa-plus"></i> Nueva Reserva
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'clients' %}" class="btn btn-success w-100">
+                                                <i class="fas fa-user-plus"></i> Nuevo Cliente
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'rooms' %}" class="btn btn-info w-100">
+                                                <i class="fas fa-bed"></i> Gestionar Habitaciones
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'reports' %}" class="btn btn-warning w-100">
+                                                <i class="fas fa-chart-line"></i> Ver Reportes
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Bookings & Alerts -->
+                    <div class="row">
+                        <!-- Recent Bookings -->
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Reservas Recientes</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if recent_bookings %}
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Cliente</th>
+                                                        <th>Habitación</th>
+                                                        <th>Check-in</th>
+                                                        <th>Check-out</th>
+                                                        <th>Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for booking in recent_bookings %}
+                                                    <tr>
+                                                        <td>{{ booking.client.full_name }}</td>
+                                                        <td>{{ booking.room.number }}</td>
+                                                        <td>{{ booking.check_in_date|date:"d/m/Y" }}</td>
+                                                        <td>{{ booking.check_out_date|date:"d/m/Y" }}</td>
+                                                        <td>
+                                                            <span class="badge bg-{% if booking.status == 'confirmed' %}success{% elif booking.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                                                {{ booking.get_status_display }}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted text-center">No hay reservas recientes</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alerts -->
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Alertas</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if maintenance_alerts %}
+                                        <div class="alert alert-warning">
+                                            <h6><i class="fas fa-tools"></i> Mantenimiento Pendiente</h6>
+                                            <p class="mb-0">{{ maintenance_alerts|length }} habitación(es) requieren mantenimiento</p>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if cleaning_rooms > 0 %}
+                                        <div class="alert alert-info">
+                                            <h6><i class="fas fa-broom"></i> Limpieza en Proceso</h6>
+                                            <p class="mb-0">{{ cleaning_rooms }} habitación(es) en limpieza</p>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if maintenance_rooms > 0 %}
+                                        <div class="alert alert-danger">
+                                            <h6><i class="fas fa-wrench"></i> En Mantenimiento</h6>
+                                            <p class="mb-0">{{ maintenance_rooms }} habitación(es) en mantenimiento</p>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if not maintenance_alerts and cleaning_rooms == 0 and maintenance_rooms == 0 %}
+                                        <div class="alert alert-success">
+                                            <h6><i class="fas fa-check-circle"></i> Todo en Orden</h6>
+                                            <p class="mb-0">No hay alertas pendientes</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

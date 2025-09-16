@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Registro - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2><i class="fas fa-user-plus"></i> Registro</h2>
+            <p>Crear nueva cuenta</p>
+        </div>
+        
+        <div class="auth-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form method="post" onsubmit="return validateForm(this)">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="first_name" class="form-label">
+                                <i class="fas fa-user"></i> Nombre
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="first_name" 
+                                   name="first_name" 
+                                   required 
+                                   placeholder="Tu nombre">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="last_name" class="form-label">
+                                <i class="fas fa-user"></i> Apellido
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="last_name" 
+                                   name="last_name" 
+                                   required 
+                                   placeholder="Tu apellido">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope"></i> Email
+                    </label>
+                    <input type="email" 
+                           class="form-control" 
+                           id="email" 
+                           name="email" 
+                           required 
+                           placeholder="tu@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="username" class="form-label">
+                        <i class="fas fa-at"></i> Usuario
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="username" 
+                           name="username" 
+                           required 
+                           placeholder="Nombre de usuario">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password1" class="form-label">
+                        <i class="fas fa-lock"></i> Contraseña
+                    </label>
+                    <input type="password" 
+                           class="form-control" 
+                           id="password1" 
+                           name="password1" 
+                           required 
+                           placeholder="Mínimo 8 caracteres">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password2" class="form-label">
+                        <i class="fas fa-lock"></i> Confirmar Contraseña
+                    </label>
+                    <input type="password" 
+                           class="form-control" 
+                           id="password2" 
+                           name="password2" 
+                           required 
+                           placeholder="Repite tu contraseña">
+                </div>
+                
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-user-plus"></i> Crear Cuenta
+                </button>
+            </form>
+        </div>
+        
+        <div class="auth-footer">
+            <p>¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión aquí</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const password1 = document.getElementById('password1');
+    const password2 = document.getElementById('password2');
+    
+    function validatePasswords() {
+        if (password1.value !== password2.value) {
+            password2.setCustomValidity('Las contraseñas no coinciden');
+        } else {
+            password2.setCustomValidity('');
+        }
+    }
+    
+    password1.addEventListener('change', validatePasswords);
+    password2.addEventListener('keyup', validatePasswords);
+});
+</script>
+{% endblock %}

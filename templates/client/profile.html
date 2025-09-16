@@ -1,0 +1,103 @@
+{% extends 'client/base.html' %}
+
+{% block title %}Mi Perfil - O11CE Hotel{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="client-form">
+                    <h2 class="fw-bold mb-4">Mi Perfil</h2>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="first_name" class="form-label fw-bold">Nombre *</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                           value="{{ user.first_name }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label fw-bold">Apellido *</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           value="{{ user.last_name }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-bold">Email *</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email }}" required>
+                        </div>
+                        
+                        {% if client %}
+                        <div class="mb-3">
+                            <label for="phone" class="form-label fw-bold">Teléfono</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   value="{{ client.phone }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="address" class="form-label fw-bold">Dirección</label>
+                            <input type="text" class="form-control" id="address" name="address" 
+                                   value="{{ client.address }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nationality" class="form-label fw-bold">Nacionalidad</label>
+                            <input type="text" class="form-control" id="nationality" name="nationality" 
+                                   value="{{ client.nationality }}">
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="client-card">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 80px; height: 80px;">
+                                <i class="fas fa-user fa-2x"></i>
+                            </div>
+                        </div>
+                        <h5 class="fw-bold">{{ user.get_full_name|default:user.username }}</h5>
+                        <p class="text-muted">{{ user.email }}</p>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-start">
+                            <h6 class="fw-bold mb-3">Información de la Cuenta</h6>
+                            <div class="mb-2">
+                                <small class="text-muted">Usuario:</small>
+                                <div class="fw-bold">{{ user.username }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Fecha de registro:</small>
+                                <div class="fw-bold">{{ user.date_joined|date:"d/m/Y" }}</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Último acceso:</small>
+                                <div class="fw-bold">{{ user.last_login|date:"d/m/Y H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

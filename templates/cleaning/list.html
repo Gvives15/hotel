@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+
+{% block title %}Limpieza - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item active">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Gestión de Limpieza</h1>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCleaningModal">
+                            <i class="fas fa-plus"></i> Nueva Tarea
+                        </button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="stats-number">{{ tasks|length }}</div>
+                                <div class="stats-label">Total Tareas</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stats-number">{{ pending_tasks|default:0 }}</div>
+                                <div class="stats-label">Pendientes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                                    <i class="fas fa-spinner"></i>
+                                </div>
+                                <div class="stats-number">{{ in_progress_tasks|default:0 }}</div>
+                                <div class="stats-label">En Progreso</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-icon" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stats-number">{{ completed_tasks|default:0 }}</div>
+                                <div class="stats-label">Completadas</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Estado</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">Todos</option>
+                                        <option value="pending">Pendiente</option>
+                                        <option value="in_progress">En Progreso</option>
+                                        <option value="completed">Completada</option>
+                                        <option value="cancelled">Cancelada</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Prioridad</label>
+                                    <select class="form-select" id="priorityFilter">
+                                        <option value="">Todas</option>
+                                        <option value="low">Baja</option>
+                                        <option value="medium">Media</option>
+                                        <option value="high">Alta</option>
+                                        <option value="urgent">Urgente</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Fecha</label>
+                                    <input type="date" class="form-control" id="dateFilter">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Buscar</label>
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Habitación o empleado...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cleaning Tasks -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Tareas de Limpieza</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if tasks %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Habitación</th>
+                                                <th>Empleado</th>
+                                                <th>Tipo</th>
+                                                <th>Fecha Programada</th>
+                                                <th>Prioridad</th>
+                                                <th>Estado</th>
+                                                <th>Notas</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for task in tasks %}
+                                            <tr class="cleaning-row" 
+                                                data-status="{{ task.status }}" 
+                                                data-priority="{{ task.priority }}"
+                                                data-date="{{ task.scheduled_date|date:'Y-m-d' }}"
+                                                data-search="{{ task.room.number|lower }} {{ task.employee.name|lower }}">
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-sm me-2">
+                                                            <i class="fas fa-bed fa-lg text-primary"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">{{ task.room.number }}</div>
+                                                            <small class="text-muted">{{ task.room.get_type_display }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-sm me-2">
+                                                            <i class="fas fa-user fa-lg text-info"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-bold">{{ task.employee.name }}</div>
+                                                            <small class="text-muted">{{ task.employee.phone }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ task.get_cleaning_type_display }}</span>
+                                                </td>
+                                                <td>
+                                                    <div>{{ task.scheduled_date|date:"d/m/Y" }}</div>
+                                                    <small class="text-muted">{{ task.scheduled_time|time:"H:i" }}</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{% if task.priority == 'urgent' %}danger{% elif task.priority == 'high' %}warning{% elif task.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                                                        {{ task.get_priority_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'in_progress' %}warning{% elif task.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                                        {{ task.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {% if task.notes %}
+                                                        <div class="text-truncate" style="max-width: 150px;" title="{{ task.notes }}">
+                                                            {{ task.notes }}
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-outline-primary btn-sm" onclick="viewTask({{ task.id }})" title="Ver detalles">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        {% if task.status == 'pending' %}
+                                                        <button class="btn btn-outline-warning btn-sm" onclick="startTask({{ task.id }})" title="Iniciar">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                        {% if task.status == 'in_progress' %}
+                                                        <button class="btn btn-outline-success btn-sm" onclick="completeTask({{ task.id }})" title="Completar">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                        {% if task.status in 'pending,in_progress' %}
+                                                        <button class="btn btn-outline-danger btn-sm" onclick="cancelTask({{ task.id }})" title="Cancelar">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-broom fa-3x text-muted mb-3"></i>
+                                    <h4 class="text-muted">No hay tareas de limpieza</h4>
+                                    <p class="text-muted">Comienza creando la primera tarea</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCleaningModal">
+                                        <i class="fas fa-plus"></i> Crear Tarea
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Cleaning Task Modal -->
+<div class="modal fade" id="addCleaningModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Tarea de Limpieza</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addCleaningForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Habitación</label>
+                                <select class="form-select" name="room" required>
+                                    <option value="">Seleccionar habitación...</option>
+                                    <!-- Options will be populated via AJAX -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" name="employee" required>
+                                    <option value="">Seleccionar empleado...</option>
+                                    <!-- Options will be populated via AJAX -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Limpieza</label>
+                                <select class="form-select" name="cleaning_type" required>
+                                    <option value="regular">Regular</option>
+                                    <option value="deep">Profunda</option>
+                                    <option value="post_checkout">Post Check-out</option>
+                                    <option value="maintenance">Mantenimiento</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Prioridad</label>
+                                <select class="form-select" name="priority" required>
+                                    <option value="low">Baja</option>
+                                    <option value="medium" selected>Media</option>
+                                    <option value="high">Alta</option>
+                                    <option value="urgent">Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Programada</label>
+                                <input type="date" class="form-control" name="scheduled_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Hora Programada</label>
+                                <input type="time" class="form-control" name="scheduled_time" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" name="notes" rows="3" placeholder="Notas adicionales..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Tarea</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const priorityFilter = document.getElementById('priorityFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const searchInput = document.getElementById('searchInput');
+    
+    function filterTasks() {
+        const status = statusFilter.value;
+        const priority = priorityFilter.value;
+        const date = dateFilter.value;
+        const search = searchInput.value.toLowerCase();
+        
+        const tasks = document.querySelectorAll('.cleaning-row');
+        
+        tasks.forEach(task => {
+            const taskStatus = task.dataset.status;
+            const taskPriority = task.dataset.priority;
+            const taskDate = task.dataset.date;
+            const taskSearch = task.dataset.search;
+            
+            const statusMatch = !status || taskStatus === status;
+            const priorityMatch = !priority || taskPriority === priority;
+            const dateMatch = !date || taskDate === date;
+            const searchMatch = !search || taskSearch.includes(search);
+            
+            if (statusMatch && priorityMatch && dateMatch && searchMatch) {
+                task.style.display = 'table-row';
+            } else {
+                task.style.display = 'none';
+            }
+        });
+    }
+    
+    statusFilter.addEventListener('change', filterTasks);
+    priorityFilter.addEventListener('change', filterTasks);
+    dateFilter.addEventListener('change', filterTasks);
+    searchInput.addEventListener('input', filterTasks);
+});
+
+// Task management functions
+function viewTask(taskId) {
+    // Implement view functionality
+    console.log('View task:', taskId);
+}
+
+function startTask(taskId) {
+    if (confirm('¿Iniciar esta tarea de limpieza?')) {
+        // Implement start functionality
+        console.log('Start task:', taskId);
+    }
+}
+
+function completeTask(taskId) {
+    if (confirm('¿Marcar esta tarea como completada?')) {
+        // Implement complete functionality
+        console.log('Complete task:', taskId);
+    }
+}
+
+function cancelTask(taskId) {
+    const reason = prompt('Motivo de cancelación:');
+    if (reason !== null) {
+        // Implement cancel functionality
+        console.log('Cancel task:', taskId, 'Reason:', reason);
+    }
+}
+</script>
+{% endblock %}
