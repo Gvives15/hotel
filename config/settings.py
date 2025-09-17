@@ -32,6 +32,16 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+ALLOWED_HOSTS = ["localhost", "*" , "https://*.ngrok-free.app"]
+
+
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = None
+CSRF_COOKIE_SAMESITE = None
+
 
 # Application definition
 

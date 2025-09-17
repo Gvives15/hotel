@@ -28,6 +28,44 @@
             --shadow-hover: 0 8px 15px rgba(0, 0, 0, 0.2);
         }
 
+        /* Dark Mode Variables */
+        [data-theme="dark"] {
+            --primary-color: #34495e;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --light-bg: #1a1a1a;
+            --dark-bg: #2c2c2c;
+            --text-dark: #ecf0f1;
+            --text-light: #bdc3c7;
+            --border-color: #34495e;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 8px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: var(--text-dark);
+        }
+
+        [data-theme="dark"] .navbar {
+            background: var(--dark-bg);
+        }
+
+        [data-theme="dark"] .sidebar {
+            background: var(--dark-bg);
+        }
+
+        [data-theme="dark"] .card {
+            background: var(--dark-bg);
+            color: var(--text-dark);
+        }
+
+        [data-theme="dark"] .stats-card {
+            background: var(--dark-bg);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -339,11 +377,65 @@
                 width: 250px;
                 z-index: 1000;
                 transition: left 0.3s ease;
+                height: calc(100vh - 80px);
+                overflow-y: auto;
             }
             
             .sidebar.show {
                 left: 0;
             }
+
+            .mobile-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+                display: none;
+            }
+
+            .mobile-overlay.show {
+                display: block;
+            }
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--light-bg);
+        }
+
+        [data-theme="dark"] .theme-toggle:hover {
+            background: var(--border-color);
         }
 
         /* Loading animation */
@@ -367,6 +459,70 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Theme and Mobile Menu JavaScript -->
+    <script>
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update theme toggle icon
+            const themeIcon = document.querySelector('.theme-toggle i');
+            if (themeIcon) {
+                themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Update theme toggle icon
+            const themeIcon = document.querySelector('.theme-toggle i');
+            if (themeIcon) {
+                themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        });
+
+        // Mobile Menu Toggle Functionality
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('show');
+                overlay.classList.toggle('show');
+            }
+        }
+
+        // Close mobile menu when clicking overlay
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.querySelector('.mobile-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    toggleMobileMenu();
+                });
+            }
+        });
+
+        // Close mobile menu when window is resized to desktop size
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.querySelector('.mobile-overlay');
+                
+                if (sidebar && overlay) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                }
+            }
+        });
+    </script>
     
     <script>
         // Toggle sidebar on mobile

@@ -103,6 +103,19 @@ class Booking(models.Model):
         return 0
     
     @property
+    def subtotal(self):
+        """Retorna el subtotal de la reserva (precio por noche * duración)"""
+        if self.room and self.duration > 0:
+            return self.room.price * self.duration
+        return 0
+    
+    @property
+    def taxes(self):
+        """Retorna los impuestos de la reserva (10% del subtotal)"""
+        from decimal import Decimal
+        return round(self.subtotal * Decimal('0.1'), 2)
+    
+    @property
     def is_active(self):
         """Verifica si la reserva está activa"""
         return self.status in ['pending', 'confirmed']

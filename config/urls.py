@@ -38,7 +38,7 @@ from app.core.views import (
     client_booking_view, client_my_bookings_view, client_booking_detail_view,
     client_booking_confirmation_view,
     client_cancel_booking_view, client_profile_view, client_login_view,
-    client_register_view, client_logout_view
+    client_register_view, client_logout_view, get_room_availability
 )
 
 # Importar vistas de reservas
@@ -392,6 +392,7 @@ urlpatterns = [
     path("portal/rooms/<int:room_id>/", client_room_detail_view, name="client_room_detail"),
     path("portal/booking/", client_booking_view, name="client_booking"),
     path("portal/booking/<int:room_id>/", client_booking_view, name="client_booking_room"),
+    path("portal/room-availability/<int:room_id>/", get_room_availability, name="room_availability_api"),
     path("portal/booking-confirmation/<int:booking_id>/", client_booking_confirmation_view, name="client_booking_confirmation"),
     path("portal/my-bookings/", client_my_bookings_view, name="client_my_bookings"),
     path("portal/my-bookings/<int:booking_id>/", client_booking_detail_view, name="client_booking_detail"),

@@ -7,11 +7,21 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
             <a class="navbar-brand" href="{% url 'dashboard' %}">
                 <i class="fas fa-hotel"></i> O11CE
             </a>
             
-            <div class="navbar-nav ms-auto">
+            <div class="navbar-nav ms-auto d-flex align-items-center">
+                <!-- Theme Toggle -->
+                <button class="theme-toggle me-3" onclick="toggleTheme()" title="Cambiar tema">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
                 <div class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
@@ -32,6 +42,9 @@
             </div>
         </div>
     </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay"></div>
 
     <div class="container-fluid">
         <div class="row">

@@ -376,8 +376,16 @@
                             <span class="summary-value">{{ room.get_type_display }}</span>
                         </div>
                         <div class="summary-item">
-                            <span class="summary-label">Piso:</span>
-                            <span class="summary-value">{{ room.floor }}</span>
+                            <span class="summary-label">Capacidad:</span>
+                            <span class="summary-value">{{ room.capacity }} persona{{ room.capacity|pluralize:"s" }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Precio por noche:</span>
+                            <span class="summary-value">${{ room.price|floatformat:0 }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Total:</span>
+                            <span class="summary-value total-price">${{ total_price|floatformat:0 }}</span>
                         </div>
                     </div>
                 </div>
@@ -432,9 +440,12 @@
                 <a href="{% url 'booking_step3' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Anterior
                 </a>
-                <button type="button" class="btn btn-confirm" onclick="confirmBooking()">
-                    <i class="fas fa-check me-2"></i>Confirmar Reserva
-                </button>
+                <form method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-confirm" onclick="confirmBooking()">
+                        <i class="fas fa-check me-2"></i>Confirmar Reserva
+                    </button>
+                </form>
             </div>
         </div>
     </div>

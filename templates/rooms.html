@@ -1,0 +1,517 @@
+{% extends 'base.html' %}
+
+{% block title %}Habitaciones - Hotel O11CE{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-hotel"></i> O11CE
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ user.get_full_name|default:user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">
+                            <i class="fas fa-user"></i> Perfil
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2">
+                <div class="sidebar">
+                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{% url 'rooms' %}" class="sidebar-item active">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                        <i class="fas fa-calendar-check"></i> Reservas
+                    </a>
+                    <a href="{% url 'clients' %}" class="sidebar-item">
+                        <i class="fas fa-users"></i> Clientes
+                    </a>
+                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                        <i class="fas fa-broom"></i> Limpieza
+                    </a>
+                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </a>
+                    <a href="{% url 'administration' %}" class="sidebar-item">
+                        <i class="fas fa-cogs"></i> Administración
+                    </a>
+                    <a href="{% url 'reports' %}" class="sidebar-item">
+                        <i class="fas fa-chart-bar"></i> Reportes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">Gestión de Habitaciones</h1>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roomModal" onclick="openRoomModal()">
+                            <i class="fas fa-plus"></i> Nueva Habitación
+                        </button>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">Todos los estados</option>
+                                        <option value="available">Disponible</option>
+                                        <option value="occupied">Ocupada</option>
+                                        <option value="cleaning">En Limpieza</option>
+                                        <option value="maintenance">En Mantenimiento</option>
+                                        <option value="reserved">Reservada</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="typeFilter">
+                                        <option value="">Todos los tipos</option>
+                                        <option value="individual">Individual</option>
+                                        <option value="double">Doble</option>
+                                        <option value="triple">Triple</option>
+                                        <option value="suite">Suite</option>
+                                        <option value="family">Familiar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="number" class="form-control" id="floorFilter" placeholder="Piso">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" id="searchFilter" placeholder="Buscar por número...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Habitaciones -->
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="roomsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Número</th>
+                                            <th>Tipo</th>
+                                            <th>Capacidad</th>
+                                            <th>Piso</th>
+                                            <th>Precio</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="roomsTableBody">
+                                        <!-- Los datos se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar Habitación -->
+<div class="modal fade" id="roomModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="roomModalTitle">Nueva Habitación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="roomForm">
+                <div class="modal-body">
+                    <input type="hidden" id="roomId" name="id">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="roomNumber" class="form-label">Número de Habitación *</label>
+                                <input type="text" class="form-control" id="roomNumber" name="number" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="roomType" class="form-label">Tipo *</label>
+                                <select class="form-select" id="roomType" name="type" required>
+                                    <option value="">Seleccionar tipo</option>
+                                    <option value="individual">Individual</option>
+                                    <option value="double">Doble</option>
+                                    <option value="triple">Triple</option>
+                                    <option value="suite">Suite</option>
+                                    <option value="family">Familiar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="roomCapacity" class="form-label">Capacidad *</label>
+                                <input type="number" class="form-control" id="roomCapacity" name="capacity" min="1" max="10" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="roomFloor" class="form-label">Piso *</label>
+                                <input type="number" class="form-control" id="roomFloor" name="floor" min="1" max="20" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="roomPrice" class="form-label">Precio por Noche *</label>
+                                <input type="number" class="form-control" id="roomPrice" name="price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="roomStatus" class="form-label">Estado</label>
+                        <select class="form-select" id="roomStatus" name="status">
+                            <option value="available">Disponible</option>
+                            <option value="occupied">Ocupada</option>
+                            <option value="cleaning">En Limpieza</option>
+                            <option value="maintenance">En Mantenimiento</option>
+                            <option value="reserved">Reservada</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="roomDescription" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="roomDescription" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="roomActive" name="active" checked>
+                        <label class="form-check-label" for="roomActive">
+                            Habitación activa
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="saveRoomBtn">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación para Eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar la habitación <strong id="deleteRoomNumber"></strong>?</p>
+                <p class="text-muted">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let rooms = [];
+let editingRoomId = null;
+
+// Cargar habitaciones al inicializar la página
+document.addEventListener('DOMContentLoaded', function() {
+    loadRooms();
+    setupEventListeners();
+});
+
+// Configurar event listeners
+function setupEventListeners() {
+    // Filtros
+    document.getElementById('statusFilter').addEventListener('change', filterRooms);
+    document.getElementById('typeFilter').addEventListener('change', filterRooms);
+    document.getElementById('floorFilter').addEventListener('input', filterRooms);
+    document.getElementById('searchFilter').addEventListener('input', filterRooms);
+    
+    // Formulario
+    document.getElementById('roomForm').addEventListener('submit', saveRoom);
+    document.getElementById('confirmDeleteBtn').addEventListener('click', deleteRoom);
+}
+
+// Cargar habitaciones desde el servidor
+async function loadRooms() {
+    try {
+        const response = await fetch('/api/rooms/');
+        if (response.ok) {
+            rooms = await response.json();
+            renderRooms(rooms);
+        } else {
+            console.error('Error al cargar habitaciones');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        // Datos de ejemplo para desarrollo
+        rooms = [
+            {id: 1, number: '101', type: 'individual', capacity: 1, floor: 1, price: 50000, status: 'available', description: 'Habitación individual con vista al jardín', active: true},
+            {id: 2, number: '102', type: 'double', capacity: 2, floor: 1, price: 75000, status: 'occupied', description: 'Habitación doble con balcón', active: true},
+            {id: 3, number: '201', type: 'suite', capacity: 4, floor: 2, price: 150000, status: 'available', description: 'Suite presidencial', active: true}
+        ];
+        renderRooms(rooms);
+    }
+}
+
+// Renderizar habitaciones en la tabla
+function renderRooms(roomsToRender) {
+    const tbody = document.getElementById('roomsTableBody');
+    tbody.innerHTML = '';
+    
+    roomsToRender.forEach(room => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${room.number}</strong></td>
+            <td>${getTypeDisplay(room.type)}</td>
+            <td>${room.capacity} personas</td>
+            <td>Piso ${room.floor}</td>
+            <td>$${room.price.toLocaleString()}</td>
+            <td><span class="badge bg-${getStatusColor(room.status)}">${getStatusDisplay(room.status)}</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editRoom(${room.id})" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteRoom(${room.id}, '${room.number}')" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Filtrar habitaciones
+function filterRooms() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const typeFilter = document.getElementById('typeFilter').value;
+    const floorFilter = document.getElementById('floorFilter').value;
+    const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+    
+    let filteredRooms = rooms.filter(room => {
+        return (!statusFilter || room.status === statusFilter) &&
+               (!typeFilter || room.type === typeFilter) &&
+               (!floorFilter || room.floor.toString() === floorFilter) &&
+               (!searchFilter || room.number.toLowerCase().includes(searchFilter));
+    });
+    
+    renderRooms(filteredRooms);
+}
+
+// Abrir modal para nueva habitación
+function openRoomModal() {
+    editingRoomId = null;
+    document.getElementById('roomModalTitle').textContent = 'Nueva Habitación';
+    document.getElementById('roomForm').reset();
+    document.getElementById('roomActive').checked = true;
+}
+
+// Editar habitación
+function editRoom(roomId) {
+    const room = rooms.find(r => r.id === roomId);
+    if (!room) return;
+    
+    editingRoomId = roomId;
+    document.getElementById('roomModalTitle').textContent = 'Editar Habitación';
+    
+    // Llenar el formulario
+    document.getElementById('roomId').value = room.id;
+    document.getElementById('roomNumber').value = room.number;
+    document.getElementById('roomType').value = room.type;
+    document.getElementById('roomCapacity').value = room.capacity;
+    document.getElementById('roomFloor').value = room.floor;
+    document.getElementById('roomPrice').value = room.price;
+    document.getElementById('roomStatus').value = room.status;
+    document.getElementById('roomDescription').value = room.description || '';
+    document.getElementById('roomActive').checked = room.active;
+    
+    // Mostrar modal
+    new bootstrap.Modal(document.getElementById('roomModal')).show();
+}
+
+// Guardar habitación
+async function saveRoom(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const roomData = {
+        number: formData.get('number'),
+        type: formData.get('type'),
+        capacity: parseInt(formData.get('capacity')),
+        floor: parseInt(formData.get('floor')),
+        price: parseFloat(formData.get('price')),
+        status: formData.get('status'),
+        description: formData.get('description'),
+        active: formData.has('active')
+    };
+    
+    try {
+        const url = editingRoomId ? `/api/rooms/${editingRoomId}/` : '/api/rooms/';
+        const method = editingRoomId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(roomData)
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('roomModal')).hide();
+            loadRooms();
+            showAlert('Habitación guardada exitosamente', 'success');
+        } else {
+            const error = await response.json();
+            showAlert('Error al guardar la habitación: ' + JSON.stringify(error), 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error de conexión', 'danger');
+    }
+}
+
+// Confirmar eliminación
+function confirmDeleteRoom(roomId, roomNumber) {
+    editingRoomId = roomId;
+    document.getElementById('deleteRoomNumber').textContent = roomNumber;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+// Eliminar habitación
+async function deleteRoom() {
+    try {
+        const response = await fetch(`/api/rooms/${editingRoomId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+            loadRooms();
+            showAlert('Habitación eliminada exitosamente', 'success');
+        } else {
+            showAlert('Error al eliminar la habitación', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error de conexión', 'danger');
+    }
+}
+
+// Funciones auxiliares
+function getTypeDisplay(type) {
+    const types = {
+        'individual': 'Individual',
+        'double': 'Doble',
+        'triple': 'Triple',
+        'suite': 'Suite',
+        'family': 'Familiar'
+    };
+    return types[type] || type;
+}
+
+function getStatusDisplay(status) {
+    const statuses = {
+        'available': 'Disponible',
+        'occupied': 'Ocupada',
+        'cleaning': 'En Limpieza',
+        'maintenance': 'En Mantenimiento',
+        'reserved': 'Reservada'
+    };
+    return statuses[status] || status;
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'available': 'success',
+        'occupied': 'danger',
+        'cleaning': 'warning',
+        'maintenance': 'info',
+        'reserved': 'primary'
+    };
+    return colors[status] || 'secondary';
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const mainContent = document.querySelector('.main-content');
+    mainContent.insertBefore(alertDiv, mainContent.firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

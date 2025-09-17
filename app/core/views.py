@@ -1,4 +1,4 @@
-jvfrom django.shortcuts import render, redirect
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -565,7 +565,7 @@ def client_booking_view(request, room_id=None):
                 
                 # Calcular precio total
                 nights = (check_out_date - check_in_date).days
-                total_price = room.price_per_night * nights
+                total_price = room.price * nights
                 
                 # Crear la reserva
                 booking = Booking.objects.create(
@@ -579,7 +579,17 @@ def client_booking_view(request, room_id=None):
                     status='confirmed'
                 )
                 
-                messages.success(request, f'¡Reserva #{booking.id} creada exitosamente! Habitación {room.number} del {check_in} al {check_out}. Total: ${booking.total_price}')
+                # Enviar email de confirmación
+                try:
+                    from .services import EmailService
+                    email_result = EmailService.send_booking_confirmation(booking.id)
+                    if email_result.get('success'):
+                        messages.success(request, f'¡Reserva #{booking.id} creada exitosamente! Se ha enviado una confirmación a tu email.')
+                    else:
+                        messages.success(request, f'¡Reserva #{booking.id} creada exitosamente! (El email de confirmación no pudo ser enviado)')
+                except Exception as email_error:
+                    messages.success(request, f'¡Reserva #{booking.id} creada exitosamente! (Error al enviar email: {str(email_error)})')
+                
                 return redirect('client_booking_confirmation', booking_id=booking.id)
                     
             except ValidationError as e:
@@ -602,6 +612,82 @@ def client_booking_view(request, room_id=None):
     }
     
     return render(request, 'client/booking.html', context)
+
+def get_room_availability(request, room_id):
+    """API para obtener disponibilidad de una habitación por fechas"""
+    if not Room:
+        return JsonResponse({'error': 'Sistema de habitaciones no disponible'}, status=500)
+    
+    try:
+        room = Room.objects.get(id=room_id, active=True)
+    except Room.DoesNotExist:
+        return JsonResponse({'error': 'Habitación no encontrada'}, status=404)
+    
+    # Obtener parámetros de fecha (próximos 60 días por defecto)
+    from datetime import date, timedelta
+    import json
+    
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    if start_date and end_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
+    else:
+        start_date = date.today()
+        end_date = start_date + timedelta(days=60)
+    
+    # Obtener reservas que afectan este período
+    if Booking:
+        bookings = Booking.objects.filter(
+            room=room,
+            status__in=['confirmed', 'pending'],
+            check_in_date__lte=end_date,
+            check_out_date__gt=start_date
+        ).values('check_in_date', 'check_out_date', 'status')
+    else:
+        bookings = []
+    
+    # Crear diccionario de disponibilidad
+    availability = {}
+    current_date = start_date
+    
+    while current_date <= end_date:
+        availability[current_date.isoformat()] = {
+            'available': True,
+            'status': 'available',
+            'price': float(room.price)
+        }
+        current_date += timedelta(days=1)
+    
+    # Marcar días ocupados
+    for booking in bookings:
+        booking_start = booking['check_in_date']
+        booking_end = booking['check_out_date']
+        
+        current_date = max(booking_start, start_date)
+        end_booking = min(booking_end, end_date + timedelta(days=1))
+        
+        while current_date < end_booking:
+            if current_date.isoformat() in availability:
+                availability[current_date.isoformat()] = {
+                    'available': False,
+                    'status': 'occupied',
+                    'price': float(room.price)
+                }
+            current_date += timedelta(days=1)
+    
+    return JsonResponse({
+        'room_id': room.id,
+        'room_number': room.number,
+        'room_type': room.get_type_display(),
+        'availability': availability,
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat()
+    })
 
 def client_booking_confirmation_view(request, booking_id):
     """Vista de confirmación de reserva"""
