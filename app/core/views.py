@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm
+from app.clients.forms import ClientRegistrationForm
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q
 from django.http import JsonResponse
@@ -840,6 +841,9 @@ def client_login_view(request):
     if request.user.is_authenticated:
         return redirect('client_index')
     
+    # Obtener el username del parámetro GET si viene del registro
+    username_from_register = request.GET.get('username', '')
+    
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -856,43 +860,37 @@ def client_login_view(request):
         else:
             messages.error(request, 'Usuario o contraseña incorrectos.')
     
-    return render(request, 'client/login.html')
+    return render(request, 'client/login.html', {'username_from_register': username_from_register})
 
 def client_register_view(request):
-    """Vista de registro para clientes"""
+    """Vista de registro para clientes con validaciones mejoradas"""
     if request.user.is_authenticated:
         return redirect('client_index')
     
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = ClientRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.first_name = request.POST.get('first_name', '')
-            user.last_name = request.POST.get('last_name', '')
-            user.email = request.POST.get('email', '')
-            user.save()
+            user = form.save()
             
-            # Crear cliente asociado si el modelo existe
-            if Client:
-                client = Client.objects.create(
-                    user=user,
-                    first_name=user.first_name,
-                    last_name=user.last_name,
-                    email=user.email,
-                    phone=request.POST.get('phone', ''),
-                    address=request.POST.get('address', ''),
-                    nationality=request.POST.get('nationality', ''),
-                )
+            # El cliente se creará automáticamente mediante las señales
+            # Actualizar campos adicionales si se proporcionaron
+            try:
+                # Esperar a que las señales creen el cliente
+                from django.db import transaction
+                transaction.on_commit(lambda: update_client_additional_fields(user, form.cleaned_data))
+            except Exception as e:
+                # Si hay error, continuar sin los campos adicionales
+                pass
             
-            # Autenticar al usuario después del registro
-            login(request, user)
-            messages.success(request, '¡Cuenta creada exitosamente!')
-            return redirect('client_index')
+            # En lugar de hacer login automático, redirigir al login con el username
+            messages.success(request, '¡Cuenta creada exitosamente! Ahora puedes iniciar sesión con tus credenciales.')
+            # Redirigir al login con el username como parámetro
+            return redirect(f'/portal/login/?username={user.username}')
         else:
-            for error in form.errors.values():
-                messages.error(request, error[0])
+            # Los errores se mostrarán automáticamente en el template
+            pass
     else:
-        form = UserCreationForm()
+        form = ClientRegistrationForm()
     
     return render(request, 'client/register.html', {'form': form})
 
@@ -901,3 +899,18 @@ def client_logout_view(request):
     logout(request)
     messages.info(request, 'Has cerrado sesión exitosamente.')
     return redirect('client_index')
+
+def update_client_additional_fields(user, form_data):
+    """Función auxiliar para actualizar campos adicionales del cliente"""
+    try:
+        if hasattr(user, 'client'):
+            client = user.client
+            if form_data.get('phone'):
+                client.phone = form_data.get('phone')
+            if form_data.get('address'):
+                client.address = form_data.get('address')
+            if form_data.get('nationality'):
+                client.nationality = form_data.get('nationality')
+            client.save()
+    except Exception:
+        pass  # Ignorar errores silenciosamente
