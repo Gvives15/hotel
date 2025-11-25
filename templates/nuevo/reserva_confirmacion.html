@@ -1,0 +1,44 @@
+{% extends 'nuevo/base.html' %}
+{% block title %}Reserva confirmada · {{ hotel.name|default:"Hotel" }}{% endblock %}
+
+{% block content %}
+<section class="container" style="padding: var(--spacing-5) var(--spacing-3);">
+  <div class="steps">
+    <span class="step">1. Fechas</span>
+    <span class="step">2. Habitaciones</span>
+    <span class="step">3. Datos</span>
+    <span class="step step--active">4. Confirmación</span>
+  </div>
+
+  <div class="search-card" style="text-align:center;">
+    <p class="badge badge--success">Reserva confirmada</p>
+    <h1 style="margin:0 0 var(--spacing-2);">¡Gracias por reservar en {{ hotel.name|default:"nuestro hotel" }}!</h1>
+    <p class="card__meta">Número de reserva <strong>#{{ booking.id }}</strong></p>
+
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); margin-top: var(--spacing-4); text-align:left;">
+      <div class="summary">
+        <h3>Estadía</h3>
+        <div class="summary__row"><span>Habitación</span><strong>{{ booking.room.name|default:booking.room.number }}</strong></div>
+        <div class="summary__row"><span>Tipo</span><strong>{{ booking.room.room_type|default:booking.room.get_type_display }}</strong></div>
+        <div class="summary__row"><span>Check-in</span><strong>{{ booking.check_in_date|default:check_in }}</strong></div>
+        <div class="summary__row"><span>Check-out</span><strong>{{ booking.check_out_date|default:check_out }}</strong></div>
+        <div class="summary__row"><span>Huéspedes</span><strong>{{ booking.guests|default:guests }}</strong></div>
+        <div class="summary__total">Total pagadero: ${{ booking.total_price|default:total_price }}</div>
+      </div>
+      <div class="summary">
+        <h3>Contacto</h3>
+        <div class="summary__row"><span>Nombre</span><strong>{{ booking.guest_name|default:guest_name }}</strong></div>
+        <div class="summary__row"><span>Email</span><strong>{{ booking.guest_email|default:user.email }}</strong></div>
+        <div class="summary__row"><span>Teléfono</span><strong>{{ booking.guest_phone|default:contact_phone }}</strong></div>
+        <p class="alert" style="margin-top: var(--spacing-2);">Recibirás un correo con los detalles y políticas de llegada.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: var(--spacing-4); display:flex; justify-content:center; gap:var(--spacing-2); flex-wrap:wrap;">
+      <a class="btn btn--primary" href="{% url 'client_my_bookings_hotel' hotel.slug %}"><i class="fa-solid fa-clipboard-list"></i> Ver mis reservas</a>
+      <a class="btn btn--secondary" href="{% url 'client_rooms_hotel' hotel.slug %}"><i class="fa-solid fa-bed"></i> Seguir explorando</a>
+      <a class="btn btn--ghost" href="{% url 'booking_step1' %}"><i class="fa-solid fa-house"></i> Ir al inicio</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
