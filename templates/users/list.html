@@ -1,0 +1,43 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container py-4">
+  <h2>Usuarios del hotel: {{ hotel.name }}</h2>
+  <div class="mb-3">
+    <a class="btn btn-primary" href="{% url 'hotel_user_create' hotel.slug %}">Crear usuario</a>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h4>Administrador</h4>
+      <ul class="list-group">
+        {% for a in admins %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          {{ a.user.username }} ({{ a.user.email }})
+          <span>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'hotel_user_edit' hotel.slug a.user.id %}">Editar</a>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'hotel_user_delete' hotel.slug a.user.id %}">Eliminar</a>
+          </span>
+        </li>
+        {% empty %}
+        <li class="list-group-item">Sin administrador asignado</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="col-md-6">
+      <h4>Staff</h4>
+      <ul class="list-group">
+        {% for s in staff %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          {{ s.user.username }} ({{ s.user.email }}) — {{ s.role|default:'staff' }}
+          <span>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'hotel_user_edit' hotel.slug s.user.id %}">Editar</a>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'hotel_user_delete' hotel.slug s.user.id %}">Eliminar</a>
+          </span>
+        </li>
+        {% empty %}
+        <li class="list-group-item">Sin staff</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

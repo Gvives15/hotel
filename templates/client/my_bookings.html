@@ -10,7 +10,7 @@
             <div class="col-lg-8 hero-content">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb text-white">
-                        <li class="breadcrumb-item"><a href="{% url 'client_index' %}" class="text-white">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="text-white">Inicio</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Mis Reservas</li>
                     </ol>
                 </nav>
@@ -48,7 +48,7 @@
                 <p class="text-muted">Tienes {{ bookings|length }} reserva{{ bookings|length|pluralize:"s" }}</p>
             </div>
             <div class="col-lg-4 text-lg-end">
-                <a href="{% url 'client_rooms' %}" class="btn btn-primary">
+                <a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="btn btn-primary">
                     <i class="fas fa-plus me-2"></i>Nueva Reserva
                 </a>
             </div>
@@ -119,7 +119,7 @@
                         {% endif %}
 
                         <div class="d-flex gap-2">
-                            <a href="{% url 'client_booking_detail' booking.id %}" class="btn btn-outline-primary btn-sm">
+                            <a href="{% if hotel %}{% url 'client_booking_detail_hotel' hotel.slug booking.id %}{% else %}{% url 'client_booking_detail' booking.id %}{% endif %}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-eye me-2"></i>Ver Detalles
                             </a>
                             
@@ -190,10 +190,10 @@
                 Aún no has hecho ninguna reserva. ¡Explora nuestras habitaciones y encuentra la perfecta para ti!
             </p>
             <div class="d-flex gap-3 justify-content-center flex-wrap">
-                <a href="{% url 'client_rooms' %}" class="btn btn-primary btn-lg">
+                <a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="btn btn-primary btn-lg">
                     <i class="fas fa-bed me-2"></i>Ver Habitaciones
                 </a>
-                <a href="{% url 'client_index' %}" class="btn btn-outline-primary btn-lg">
+                <a href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="btn btn-outline-primary btn-lg">
                     <i class="fas fa-home me-2"></i>Volver al Inicio
                 </a>
             </div>
@@ -328,7 +328,7 @@
                         </div>
                         
                         <div class="d-grid gap-2">
-                            <a href="{% url 'client_booking_detail' booking.id %}" class="btn btn-outline-primary">
+                            <a href="{% if hotel %}{% url 'client_booking_detail_hotel' hotel.slug booking.id %}{% else %}{% url 'client_booking_detail' booking.id %}{% endif %}" class="btn btn-outline-primary">
                                 <i class="fas fa-eye me-2"></i>Ver Detalles
                             </a>
                             {% if booking.status == 'confirmed' or booking.status == 'pending' %}
@@ -350,10 +350,10 @@
                         Aún no has hecho ninguna reserva. ¡Explora nuestras habitaciones y encuentra la perfecta para ti!
                     </p>
                     <div class="d-flex gap-3 justify-content-center flex-wrap">
-                        <a href="{% url 'client_rooms' %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-bed me-2"></i>Ver Habitaciones
-                        </a>
-                        <a href="{% url 'client_index' %}" class="btn btn-outline-primary btn-lg">
+            <a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-bed me-2"></i>Ver Habitaciones
+            </a>
+                        <a href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="btn btn-outline-primary btn-lg">
                             <i class="fas fa-home me-2"></i>Volver al Inicio
                         </a>
                     </div>

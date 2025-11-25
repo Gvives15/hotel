@@ -10,8 +10,8 @@
             <div class="col-lg-8 hero-content">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb text-white">
-                        <li class="breadcrumb-item"><a href="{% url 'client_index' %}" class="text-white">Inicio</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'client_my_bookings' %}" class="text-white">Mis Reservas</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="text-white">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_my_bookings_hotel' hotel.slug %}{% else %}{% url 'my_bookings' %}{% endif %}" class="text-white">Mis Reservas</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Detalle</li>
                     </ol>
                 </nav>
@@ -79,7 +79,7 @@
                                 
                                 <p class="mb-3">{{ booking.room.description }}</p>
                                 
-                                <a href="{% url 'client_room_detail' booking.room.id %}" class="btn btn-outline-primary">
+                                <a href="{% if hotel %}{% url 'client_room_detail_hotel' hotel.slug booking.room.id %}{% else %}{% url 'client_room_detail' booking.room.id %}{% endif %}" class="btn btn-outline-primary">
                                     <i class="fas fa-eye me-2"></i>Ver Detalles de la Habitación
                                 </a>
                             </div>

@@ -2,12 +2,17 @@ from ninja import Router, Schema
 from ninja.errors import HttpError
 from django.core.mail import send_mail
 from django.conf import settings
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from .models import EmailLog
 from app.bookings.models import Booking
 from app.clients.models import Client
 from .services import EmailService
+from app.administration.models import Hotel, SUB_TRIAL, SUB_ACTIVE
+from django.utils import timezone
+from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
+from django.db.models import Count, Sum, Q
+from decimal import Decimal
 
 router = Router()
 
@@ -96,4 +101,119 @@ def get_email_logs(request):
         "total_pages": paginator.num_pages,
         "current_page": page_obj.number,
         "total_count": paginator.count
-    } 
+    }
+
+@router.get("/superadmin/kpis", tags=["Superadmin"])
+def superadmin_kpis(request):
+    if not getattr(request, "user", None) or not request.user.is_authenticated or not request.user.is_superuser:
+        raise HttpError(403, "Forbidden")
+    today = timezone.now().date()
+    total_rooms = 0
+    try:
+        from app.rooms.models import Room
+        total_rooms = Room.objects.count()
+    except Exception:
+        total_rooms = 0
+    occupied_rooms = Booking.objects.filter(
+        status="confirmed",
+        check_in_date__lte=today,
+        check_out_date__gte=today,
+    ).values("room").distinct().count()
+    occupancy_rate = float(occupied_rooms / total_rooms) if total_rooms > 0 else 0.0
+    active_bookings = Booking.objects.filter(
+        status="confirmed",
+        check_in_date__lte=today,
+        check_out_date__gte=today,
+    ).count()
+    agg = Booking.objects.filter(
+        status="confirmed",
+        check_in_date=today,
+    ).aggregate(total=Sum("total_price"))
+    estimated_revenue_today = agg.get("total") or Decimal("0")
+    active_hotels = Hotel.objects.filter(
+        subscription_status__in=[SUB_TRIAL, SUB_ACTIVE],
+        is_blocked=False,
+    ).count()
+    return {
+        "date": today,
+        "occupancy_rate": round(occupancy_rate, 4),
+        "active_bookings": active_bookings,
+        "estimated_revenue_today": str(estimated_revenue_today),
+        "active_hotels": active_hotels,
+    }
+
+@router.get("/superadmin/chart", tags=["Superadmin"])
+def superadmin_chart(request, metric: str = "bookings", interval: str = "week", start_date: Optional[str] = None, end_date: Optional[str] = None):
+    if not getattr(request, "user", None) or not request.user.is_authenticated or not request.user.is_superuser:
+        raise HttpError(403, "Forbidden")
+    today = timezone.now().date()
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        except Exception:
+            end = today
+    else:
+        end = today
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except Exception:
+            start = end - timedelta(days=84)
+    else:
+        start = end - timedelta(days=84)
+    qs = Booking.objects.filter(check_in_date__gte=start, check_in_date__lte=end)
+    if interval == "month":
+        grp = TruncMonth("check_in_date")
+    elif interval == "day":
+        grp = TruncDate("check_in_date")
+    else:
+        grp = TruncWeek("check_in_date")
+    if metric == "revenue":
+        data = (
+            qs.filter(status="confirmed")
+            .annotate(p=grp)
+            .values("p")
+            .annotate(value=Sum("total_price"))
+            .order_by("p")
+        )
+    else:
+        data = (
+            qs.annotate(p=grp)
+            .values("p")
+            .annotate(value=Count("id"))
+            .order_by("p")
+        )
+    return {"series": [{"period": d["p"], "value": d["value"]} for d in data]}
+
+@router.get("/superadmin/hotels", tags=["Superadmin"])
+def superadmin_hotels(request):
+    if not getattr(request, "user", None) or not request.user.is_authenticated or not request.user.is_superuser:
+        raise HttpError(403, "Forbidden")
+    today = timezone.now().date()
+    start_week = today - timedelta(days=today.weekday())
+    end_week = start_week + timedelta(days=6)
+    hotels = Hotel.objects.all().order_by("name")
+    results = []
+    for h in hotels:
+        week_count = Booking.objects.filter(
+            hotel=h,
+            check_in_date__gte=start_week,
+            check_in_date__lte=end_week,
+        ).count()
+        bookings_today = Booking.objects.filter(
+            hotel=h,
+            status="confirmed",
+            check_in_date__lte=today,
+            check_out_date__gte=today,
+        ).count()
+        results.append({
+            "id": h.id,
+            "name": h.name,
+            "slug": h.slug,
+            "plan_name": h.plan_name,
+            "subscription_status": h.subscription_status,
+            "is_blocked": h.is_blocked,
+            "bookings_this_week": week_count,
+            "bookings_today": bookings_today,
+        })
+    return {"hotels": results}

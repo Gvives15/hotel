@@ -50,6 +50,12 @@ class Room(models.Model):
     def __str__(self):
         return f"Habitación {self.number} - {self.get_type_display()}"
     
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        super().clean()
+        if not self.hotel:
+            raise ValidationError({'hotel': 'La habitación debe pertenecer a un hotel'})
+
     @property
     def available_for_booking(self):
         """Verifica si la habitación está disponible para reservas"""

@@ -172,8 +172,19 @@ def create_booking_with_client(request, payload: CreateBookingRequest):
             duration = (payload.fecha_fin - payload.fecha_inicio).days
             total_price = room.price * duration
             
+            # Validar suscripción del hotel
+            if hasattr(room, 'hotel') and room.hotel and hasattr(room.hotel, 'can_accept_new_bookings'):
+                if not room.hotel.can_accept_new_bookings:
+                    return {
+                        "success": False,
+                        "message": "Este hotel no está aceptando reservas nuevas.",
+                        "booking_id": None,
+                        "client_id": client.id,
+                        "total_price": None
+                    }
             # Crear la reserva
             booking = Booking.objects.create(
+                hotel=getattr(room, 'hotel', None),
                 client=client,
                 room=room,
                 check_in_date=payload.fecha_inicio,

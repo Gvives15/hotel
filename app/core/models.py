@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 from django.utils import timezone
 
 class ActionLog(models.Model):
@@ -14,11 +14,12 @@ class ActionLog(models.Model):
     ]
     
     # Información de la acción
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuario")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Usuario")
     action = models.CharField(max_length=50, choices=ACTION_CHOICES, verbose_name="Acción")
     description = models.CharField(max_length=200, blank=True, verbose_name="Descripción")
     ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="Dirección IP")
     user_agent = models.TextField(blank=True, verbose_name="User Agent")
+    hotel = models.ForeignKey('administration.Hotel', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Hotel")
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")

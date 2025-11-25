@@ -36,7 +36,8 @@
     .room-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
     .room-title { font-size:1.2rem; font-weight:600; color:var(--dark-color); margin:0; }
     .room-description { color:var(--muted-color); margin-bottom:.75rem; }
-    .room-actions { display:flex; gap:.75rem; }
+    .room-actions { display:flex; gap:.75rem; flex-wrap:wrap; }
+    .btn-action { flex: 1 1 auto; }
     .status-badge { padding:.5rem .75rem; border-radius:20px; font-size:.75rem; font-weight:600; text-transform:uppercase; }
     .status-available { background-color:rgba(16,185,129,.1); color:var(--success-color); }
     .status-maintenance { background-color:rgba(245,158,11,.1); color:var(--warning-color); }
@@ -69,15 +70,9 @@
           <li class="nav-item"><a class="nav-link" href="{% url 'superadmin_audit_emails' %}"><i class="fas fa-envelope me-1"></i>Emails</a></li>
           <li class="nav-item"><a class="nav-link" href="{% url 'superadmin_export_bookings_csv' %}"><i class="fas fa-file-csv me-1"></i>Reportes</a></li>
         </ul>
-        <form id="global-filters" class="d-flex align-items-center gap-2 ms-auto">
-          <select class="form-select form-select-sm" id="f-hotel" aria-label="Hotel">
-            <option value="">Seleccionar hotel…</option>
-          </select>
-          <input type="date" class="form-control form-control-sm" id="f-desde" aria-label="Desde">
-          <input type="date" class="form-control form-control-sm" id="f-hasta" aria-label="Hasta">
-          <button class="btn btn-light btn-sm" type="submit"><i class="fas fa-filter me-1"></i>Aplicar</button>
+        <div class="ms-auto">
           <button class="btn btn-outline-light btn-sm" type="button" id="theme-toggle"><i class="fas fa-moon me-1"></i>Tema</button>
-        </form>
+        </div>
         <span class="navbar-text text-white ms-3">{{ request.user.username }}</span>
       </div>
     </div>
@@ -120,29 +115,10 @@
   </div>
   <script>
     (function(){
-      function qp(k){const u=new URL(window.location.href);return u.searchParams.get(k)}
-      function setDefaults(){
-        const d=document.getElementById('f-desde');
-        const h=document.getElementById('f-hasta');
-        const qd=qp('desde'); const qh=qp('hasta');
-        const today=new Date(); const isoToday=today.toISOString().slice(0,10);
-        const past=new Date(today.getTime()-30*24*60*60*1000); const isoPast=past.toISOString().slice(0,10);
-        d.value = qd || isoPast; h.value = qh || isoToday;
-        const savedTheme=localStorage.getItem('superadmin_theme')||'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        const btn=document.getElementById('theme-toggle');
-        btn.innerHTML = savedTheme==='dark' ? '<i class="fas fa-sun me-1"></i>Claro' : '<i class="fas fa-moon me-1"></i>Oscuro';
-      }
-      function submitFilters(e){
-        e.preventDefault();
-        const d=document.getElementById('f-desde').value;
-        const h=document.getElementById('f-hasta').value;
-        const hot=document.getElementById('f-hotel').value;
-        const u=new URL(window.location.href);
-        if(d) u.searchParams.set('desde', d); else u.searchParams.delete('desde');
-        if(h) u.searchParams.set('hasta', h); else u.searchParams.delete('hasta');
-        if(hot){ window.location.href = `/superadmin/hoteles/${hot}/`+ (u.search ? u.search : ''); } else { window.location.href = u.toString(); }
-      }
+      const savedTheme=localStorage.getItem('superadmin_theme')||'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      const btn=document.getElementById('theme-toggle');
+      btn.innerHTML = savedTheme==='dark' ? '<i class="fas fa-sun me-1"></i>Claro' : '<i class="fas fa-moon me-1"></i>Oscuro';
       function toggleTheme(){
         const cur=document.documentElement.getAttribute('data-theme')||'dark';
         const next = cur==='dark' ? 'light' : 'dark';
@@ -151,9 +127,7 @@
         const btn=document.getElementById('theme-toggle');
         btn.innerHTML = next==='dark' ? '<i class="fas fa-sun me-1"></i>Claro' : '<i class="fas fa-moon me-1"></i>Oscuro';
       }
-      document.getElementById('global-filters').addEventListener('submit', submitFilters);
-      setDefaults();
-      fetch('/superadmin/api/hotels').then(r=>r.json()).then(d=>{const sel=document.getElementById('f-hotel');(d.hotels||[]).forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.name+(x.is_blocked?' (Bloqueado)':'');sel.appendChild(o)})})
+      
       document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
       const chatBtn=document.getElementById('chat-toggle');
       const chatMod=document.getElementById('chat-modal');
@@ -166,10 +140,7 @@
       function addMsg(text,me){const d=document.createElement('div');d.className='chat-msg'+(me?' me':'');const b=document.createElement('div');b.className='chat-bubble';b.textContent=text;d.appendChild(b);chatBody.appendChild(d);chatBody.scrollTop=chatBody.scrollHeight}
       function getCookie(name){const v=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)');return v?v.pop():''}
       async function send(){const t=chatText.value.trim();if(!t)return;addMsg(t,true);chatText.value='';
-        const u=new URL(window.location.href);const d=u.searchParams.get('desde')||new Date().toISOString().slice(0,10);const h=u.searchParams.get('hasta')||new Date().toISOString().slice(0,10);
-        const hotelId=(document.getElementById('f-hotel').value||'').trim();
-        const scope = hotelId? 'hotel':'global';
-        const body = { scope: scope, hotel_id: hotelId? Number(hotelId): undefined, desde: d, hasta: h, question: t };
+        const body = { scope: 'global', question: t };
         try{
           const r=await fetch('/superadmin/api/ia/chat/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify(body)});
           const out=await r.json();

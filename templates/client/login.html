@@ -70,7 +70,7 @@
                     
                     <div class="text-center">
                         <p class="mb-3">¿No tienes cuenta?</p>
-                        <a href="{% url 'client_register' %}" class="btn btn-outline-primary">
+                        <a href="{% if hotel %}{% url 'client_register_hotel' hotel.slug %}{% else %}{% url 'client_register' %}{% endif %}" class="btn btn-outline-primary">
                             <i class="fas fa-user-plus me-2"></i>Crear Cuenta
                         </a>
                     </div>

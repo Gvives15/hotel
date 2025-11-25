@@ -1,0 +1,12 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container py-4">
+  <h2>Eliminar Usuario — {{ hotel.name }}</h2>
+  <p>¿Confirmas eliminar/desactivar al usuario <strong>{{ user_obj.username }}</strong>?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Eliminar</button>
+    <a class="btn btn-secondary" href="{% url 'hotel_users_list' hotel.slug %}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

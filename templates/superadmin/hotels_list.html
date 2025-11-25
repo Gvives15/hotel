@@ -17,14 +17,12 @@
             <h3 class="room-title">{{ h.name }}</h3>
             <span class="status-badge {% if h.is_blocked %}status-maintenance{% else %}status-available{% endif %}">{% if h.is_blocked %}Bloqueado{% else %}Activo{% endif %}</span>
           </div>
-          <p class="room-description">Slug: {{ h.slug }}</p>
+          <p class="room-description">Slug: {{ h.slug }} • Plan: {{ h.get_plan_name_display }} • Suscripción: {{ h.get_subscription_status_display }}{% if h.trial_until %} • Trial hasta {{ h.trial_until|date:"d/m/Y" }}{% endif %}</p>
           <div class="room-actions">
             <a href="{% url 'superadmin_hotel_detail' h.id %}" class="btn btn-outline-primary btn-action">Detalles</a>
-            {% if h.is_blocked %}
-            <form method="post" action="{% url 'superadmin_unblock_hotel' h.id %}" class="flex-grow-1">{% csrf_token %}<button class="btn btn-success w-100">Desbloquear</button></form>
-            {% else %}
-            <form method="post" action="{% url 'superadmin_block_hotel' h.id %}" class="flex-grow-1">{% csrf_token %}<button class="btn btn-danger w-100">Bloquear</button></form>
-            {% endif %}
+            <a href="{% url 'client_index_hotel' h.slug %}" class="btn btn-outline-secondary btn-action" target="_blank"><i class="fas fa-globe me-1"></i>Portal</a>
+            <a href="{% url 'client_login_hotel' h.slug %}" class="btn btn-outline-secondary btn-action" target="_blank"><i class="fas fa-user me-1"></i>Login</a>
+            <a href="{% url 'panel_dashboard_hotel' h.slug %}" class="btn btn-outline-info btn-action" target="_blank"><i class="fas fa-gauge me-1"></i>Panel</a>
           </div>
         </div>
       </div>

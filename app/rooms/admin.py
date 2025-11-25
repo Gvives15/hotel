@@ -28,16 +28,17 @@ class RoomAdmin(admin.ModelAdmin):
     """
     Configuración del admin para el modelo Room
     """
-    list_display = ['number', 'type', 'status', 'price', 'capacity', 'floor', 'active', 'image_count', 'available_rooms']
-    list_filter = ['type', 'status', 'floor', 'active']
+    list_display = ['number', 'hotel', 'type', 'status', 'price', 'capacity', 'floor', 'active', 'image_count', 'available_rooms']
+    list_filter = ['hotel', 'type', 'status', 'floor', 'active']
     search_fields = ['number', 'description']
     list_editable = ['status', 'price', 'active']
     readonly_fields = ['created_at', 'updated_at', 'main_image_preview']
     inlines = [RoomImageInline]
+    actions = ['mark_available', 'mark_reserved', 'mark_cleaning', 'mark_maintenance']
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('number', 'type', 'capacity', 'price', 'status')
+            'fields': ('hotel', 'number', 'type', 'capacity', 'price', 'status')
         }),
         ('Detalles', {
             'fields': ('description', 'floor', 'active')
@@ -89,6 +90,50 @@ class RoomAdmin(admin.ModelAdmin):
             )
         return format_html('<div style="padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center; color: #6c757d;">Sin imágenes</div>')
     main_image_preview.short_description = 'Imagen Principal'
+
+    def mark_available(self, request, queryset):
+        updated = 0
+        for room in queryset:
+            try:
+                room.change_status('available')
+                updated += 1
+            except Exception:
+                continue
+        self.message_user(request, f'{updated} habitaciones marcadas como libres.')
+    mark_available.short_description = 'Marcar como Libre'
+
+    def mark_reserved(self, request, queryset):
+        updated = 0
+        for room in queryset:
+            try:
+                room.change_status('reserved')
+                updated += 1
+            except Exception:
+                continue
+        self.message_user(request, f'{updated} habitaciones marcadas como reservadas.')
+    mark_reserved.short_description = 'Marcar como Reservada'
+
+    def mark_cleaning(self, request, queryset):
+        updated = 0
+        for room in queryset:
+            try:
+                room.change_status('cleaning')
+                updated += 1
+            except Exception:
+                continue
+        self.message_user(request, f'{updated} habitaciones marcadas en limpieza.')
+    mark_cleaning.short_description = 'Marcar en Limpieza'
+
+    def mark_maintenance(self, request, queryset):
+        updated = 0
+        for room in queryset:
+            try:
+                room.change_status('maintenance')
+                updated += 1
+            except Exception:
+                continue
+        self.message_user(request, f'{updated} habitaciones marcadas en mantenimiento.')
+    mark_maintenance.short_description = 'Marcar en Mantenimiento'
 
 
 @admin.register(RoomImage)

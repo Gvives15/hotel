@@ -51,28 +51,28 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2">
                 <div class="sidebar">
-                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_dashboard_hotel' hotel.slug %}{% else %}{% url 'dashboard' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
-                    <a href="{% url 'rooms' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_rooms_hotel' hotel.slug %}{% else %}{% url 'rooms' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-bed"></i> Habitaciones
                     </a>
-                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_bookings_hotel' hotel.slug %}{% else %}{% url 'bookings' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-calendar-check"></i> Reservas
                     </a>
-                    <a href="{% url 'clients' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_clients_hotel' hotel.slug %}{% else %}{% url 'clients' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-users"></i> Clientes
                     </a>
-                    <a href="{% url 'cleaning' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_cleaning_hotel' hotel.slug %}{% else %}{% url 'cleaning' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-broom"></i> Limpieza
                     </a>
-                    <a href="{% url 'maintenance' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_maintenance_hotel' hotel.slug %}{% else %}{% url 'maintenance' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-tools"></i> Mantenimiento
                     </a>
-                    <a href="{% url 'administration' %}" class="sidebar-item active">
+                    <a href="{% if hotel %}{% url 'panel_administration_hotel' hotel.slug %}{% else %}{% url 'administration' %}{% endif %}" class="sidebar-item active">
                         <i class="fas fa-cogs"></i> Administración
                     </a>
-                    <a href="{% url 'reports' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_reports_hotel' hotel.slug %}{% else %}{% url 'reports' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-chart-bar"></i> Reportes
                     </a>
                 </div>

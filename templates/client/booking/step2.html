@@ -318,7 +318,7 @@
 
             <!-- Navigation Buttons -->
             <div class="d-grid gap-2 d-md-flex justify-content-md-between mt-4">
-                <a href="{% url 'booking_step1' %}" class="btn btn-outline-secondary">
+                <a href="{% if hotel %}{% url 'client_booking_step1_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Anterior
                 </a>
                 <button type="submit" class="btn btn-primary" id="continueBtn" disabled>
@@ -333,10 +333,10 @@
             <h4>No hay habitaciones disponibles</h4>
             <p>Lo sentimos, no hay habitaciones disponibles para las fechas y número de personas seleccionados.</p>
             <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                <a href="{% url 'booking_step1' %}" class="btn btn-primary">
+                <a href="{% if hotel %}{% url 'client_booking_step1_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="btn btn-primary">
                     <i class="fas fa-arrow-left me-2"></i>Cambiar Fechas
                 </a>
-                <a href="{% url 'client_rooms' %}" class="btn btn-outline-primary">
+                <a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="btn btn-outline-primary">
                     <i class="fas fa-bed me-2"></i>Ver Todas las Habitaciones
                 </a>
             </div>

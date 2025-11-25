@@ -7,7 +7,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'dashboard' %}">
+            <a class="navbar-brand" href="{% if hotel %}{% url 'panel_dashboard_hotel' hotel.slug %}{% else %}{% url 'dashboard' %}{% endif %}">
                 <i class="fas fa-hotel"></i> O11CE
             </a>
             
@@ -38,16 +38,16 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2">
                 <div class="sidebar">
-                    <a href="{% url 'dashboard' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_dashboard_hotel' hotel.slug %}{% else %}{% url 'dashboard' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
-                    <a href="{% url 'rooms' %}" class="sidebar-item active">
+                    <a href="{% if hotel %}{% url 'panel_rooms_hotel' hotel.slug %}{% else %}{% url 'rooms' %}{% endif %}" class="sidebar-item active">
                         <i class="fas fa-bed"></i> Habitaciones
                     </a>
-                    <a href="{% url 'bookings' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_bookings_hotel' hotel.slug %}{% else %}{% url 'bookings' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-calendar-check"></i> Reservas
                     </a>
-                    <a href="{% url 'clients' %}" class="sidebar-item">
+                    <a href="{% if hotel %}{% url 'panel_clients_hotel' hotel.slug %}{% else %}{% url 'clients' %}{% endif %}" class="sidebar-item">
                         <i class="fas fa-users"></i> Clientes
                     </a>
                     <a href="{% url 'cleaning' %}" class="sidebar-item">

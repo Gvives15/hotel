@@ -11,6 +11,7 @@ import json
 from .models import Booking
 from app.rooms.models import Room
 from app.clients.models import Client
+from app.administration.models import Hotel
 from app.core.services import EmailService
 from django.db.models import Q
 from django.http import HttpResponse
@@ -229,6 +230,10 @@ def create_booking_final(request):
         duration = (check_out - check_in).days
         total_price = room.price * duration
         
+        # Validar suscripción del hotel
+        if hasattr(room, 'hotel') and room.hotel and hasattr(room.hotel, 'can_accept_new_bookings'):
+            if not room.hotel.can_accept_new_bookings:
+                return JsonResponse({'success': False, 'message': 'Este hotel no está aceptando reservas nuevas.'}, status=403)
         # Crear la reserva
         booking = Booking.objects.create(
             hotel=room.hotel,
@@ -289,6 +294,23 @@ def booking_detail(request, booking_id):
         'booking': booking,
     }
     return render(request, 'client/booking/detail.html', context)
+
+@login_required
+def panel_booking_detail_hotel_view(request, hotel_slug, booking_id):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        messages.error(request, 'Hotel no encontrado.')
+        return redirect('panel_bookings_hotel', hotel_slug=hotel_slug)
+    try:
+        booking = get_object_or_404(Booking, id=booking_id, hotel=hotel)
+    except Exception:
+        messages.error(request, 'Reserva no encontrada.')
+        return redirect('panel_bookings_hotel', hotel_slug=hotel_slug)
+    if not request.user.is_staff and booking.client.user != request.user:
+        messages.error(request, 'No tienes permisos para ver esta reserva.')
+        return redirect('client_my_bookings')
+    return render(request, 'client/booking/detail.html', {'booking': booking, 'hotel': hotel})
 
 @login_required
 def my_bookings(request):
@@ -458,6 +480,10 @@ def create_booking_api(request):
                 client.save(update_fields=['hotel'])
             except Exception:
                 client.save()
+        # Validar suscripción del hotel
+        if hasattr(room, 'hotel') and room.hotel and hasattr(room.hotel, 'can_accept_new_bookings'):
+            if not room.hotel.can_accept_new_bookings:
+                return JsonResponse({'error': 'Este hotel no está aceptando reservas nuevas.'}, status=403)
         booking = Booking.objects.create(
             hotel=getattr(room, 'hotel', None),
             client=client,

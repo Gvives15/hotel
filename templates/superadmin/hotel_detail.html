@@ -20,6 +20,9 @@
         <div class="col-12"><p class="room-description">{{ hotel.address }}</p></div>
       </div>
       <div class="room-actions mt-2">
+        <a href="{% url 'client_index_hotel' hotel.slug %}" class="btn btn-outline-secondary btn-action" target="_blank"><i class="fas fa-globe me-1"></i>Portal</a>
+        <a href="{% url 'client_login_hotel' hotel.slug %}" class="btn btn-outline-secondary btn-action" target="_blank"><i class="fas fa-user me-1"></i>Login</a>
+        <a href="{% url 'panel_dashboard_hotel' hotel.slug %}" class="btn btn-outline-info btn-action" target="_blank"><i class="fas fa-gauge me-1"></i>Panel</a>
         {% if hotel.is_blocked %}
           <form method="post" action="{% url 'superadmin_unblock_hotel' hotel.id %}" class="flex-grow-1">{% csrf_token %}<button class="btn btn-success w-100">Desbloquear</button></form>
         {% else %}
@@ -68,6 +71,46 @@
     </div>
   </div>
 </div>
+<div class="page-section">
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="client-card chart-card">
+        <h6 class="mb-3">Habitaciones por estado</h6>
+        <canvas id="hchart-rooms"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="client-card">
+        <div class="room-content">
+          <h6 class="mb-3">Habitaciones • Total {{ total_rooms }}</h6>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead><tr><th>#</th><th>Tipo</th><th>Capacidad</th><th>Precio</th><th>Estado</th><th>Movimiento</th></tr></thead>
+              <tbody>
+              {% for r in rooms %}
+                <tr>
+                  <td class="fw-semibold">{{ r.number }}</td>
+                  <td>{{ r.type }}</td>
+                  <td>{{ r.capacity }}</td>
+                  <td>${{ r.price }}</td>
+                  <td><span class="status-badge {% if r.status == 'available' %}status-available{% elif r.status == 'maintenance' %}status-maintenance{% elif r.status == 'cleaning' %}status-maintenance{% elif r.status == 'reserved' %}status-maintenance{% else %}status-available{% endif %}">{{ r.status }}</span></td>
+                  <td>
+                    {% for b in r.recent %}
+                      <div class="small">{{ b.check_in }} → {{ b.check_out }} • {{ b.status }}</div>
+                    {% empty %}
+                      <div class="small text-muted">Sin movimientos recientes</div>
+                    {% endfor %}
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 {% block extra_js %}
 <script>
@@ -84,6 +127,7 @@ async function loadHotel(){
   const ctx=document.getElementById('hchart-daily');new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'Pendientes',data:p,borderColor:'#f59e0b'},{label:'Confirmadas',data:c,borderColor:'#10b981'},{label:'Canceladas',data:cc,borderColor:'#ef4444'}]}});
   const dist=(data.distributions||{}).status||{pending:0,confirmed:0,cancelled:0};
   const ctx2=document.getElementById('hchart-status');new Chart(ctx2,{type:'doughnut',data:{labels:['Pendiente','Confirmada','Cancelada'],datasets:[{data:[dist.pending,dist.confirmed,dist.cancelled],backgroundColor:['#f59e0b','#10b981','#ef4444']} ]}});
+  const rl={{ rooms_labels|safe }};const rc={{ rooms_counts|safe }};new Chart(document.getElementById('hchart-rooms'),{type:'bar',data:{labels:rl,datasets:[{label:'Habitaciones',data:rc,backgroundColor:'#3b82f6'}]}});
 }
 loadHotel()
 </script>

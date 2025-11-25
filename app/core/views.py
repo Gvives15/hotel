@@ -11,13 +11,15 @@ from app.core.services_ia import call_n8n_ia_analyst, IAServiceError, IAServiceN
 from app.superadmin.services import get_dashboard_data
 from django.contrib.auth.forms import UserCreationForm
 from app.clients.forms import ClientRegistrationForm
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q
 from django.http import JsonResponse, HttpResponse
 from django.http import HttpResponseForbidden
+from django.views.decorators.http import require_http_methods
 from datetime import datetime, timedelta
 import locale
 from .utils import log_user_action
+from app.bookings.views import booking_step1, booking_step2, booking_step3, booking_step4
 
 # Configurar locale para formato de moneda colombiana
 try:
@@ -36,6 +38,7 @@ from app.rooms.models import Room
 from app.bookings.models import Booking
 from app.clients.models import Client
 from app.administration.models import Hotel
+from app.administration.models import HotelAdmin, HotelStaff
 try:
     from app.cleaning.models import CleaningTask
 except ImportError:
@@ -49,6 +52,8 @@ except ImportError:
 def login_view(request):
     """Vista para el login"""
     if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('superadmin_dashboard')
         return redirect('dashboard')
     
     if request.method == 'POST':
@@ -63,6 +68,8 @@ def login_view(request):
             if not remember:
                 request.session.set_expiry(0)  # Sesión expira al cerrar navegador
             messages.success(request, f'¡Bienvenido, {user.get_full_name() or user.username}!')
+            if user.is_superuser:
+                return redirect('superadmin_dashboard')
             return redirect('dashboard')
         else:
             messages.error(request, 'Usuario o contraseña incorrectos.')
@@ -101,14 +108,17 @@ def logout_view(request):
     messages.info(request, 'Has cerrado sesión exitosamente.')
     return redirect('login')
 
-def get_dashboard_metrics():
+def get_dashboard_metrics(hotel=None):
     """Función para obtener métricas del dashboard de forma optimizada"""
     metrics = {}
     
     # Obtener estadísticas de habitaciones
     try:
         from app.rooms.models import Room as RoomModel
-        room_stats = RoomModel.objects.aggregate(
+        qs_rooms = RoomModel.objects.all()
+        if hotel:
+            qs_rooms = qs_rooms.filter(hotel=hotel)
+        room_stats = qs_rooms.aggregate(
             total=Count('id'),
             available=Count('id', filter=Q(status='available')),
             cleaning=Count('id', filter=Q(status='cleaning')),
@@ -119,7 +129,11 @@ def get_dashboard_metrics():
         try:
             from app.bookings.models import Booking as BookingModel
             today = datetime.now().date()
-            occupied_rooms = BookingModel.objects.filter(
+            qs_bookings = BookingModel.objects.all()
+            if hotel:
+                qs_bookings = qs_bookings.filter(hotel=hotel)
+            today = datetime.now().date()
+            occupied_rooms = qs_bookings.filter(
                 check_in_date__lte=today,
                 check_out_date__gte=today,
                 status='confirmed'
@@ -149,8 +163,10 @@ def get_dashboard_metrics():
         from app.bookings.models import Booking as BookingModel
         today = datetime.now().date()
         start_of_month = datetime.now().replace(day=1).date()
-        
-        booking_stats = BookingModel.objects.aggregate(
+        qs_bookings = BookingModel.objects.all()
+        if hotel:
+            qs_bookings = qs_bookings.filter(hotel=hotel)
+        booking_stats = qs_bookings.aggregate(
             active_bookings=Count('id', filter=Q(
                 check_in_date__lte=today,
                 check_out_date__gte=today,
@@ -165,7 +181,7 @@ def get_dashboard_metrics():
         metrics.update({
             'active_bookings': booking_stats['active_bookings'] or 0,
             'total_revenue': booking_stats['total_revenue'] or 0,
-            'recent_bookings': BookingModel.objects.select_related('client', 'room').order_by('-created_at')[:10]
+            'recent_bookings': qs_bookings.select_related('client', 'room').order_by('-created_at')[:10]
         })
     except ImportError:
         metrics.update({
@@ -177,16 +193,20 @@ def get_dashboard_metrics():
     # Obtener estadísticas de clientes
     try:
         from app.clients.models import Client as ClientModel
-        metrics['total_clients'] = ClientModel.objects.count()
+        qs_clients = ClientModel.objects.all()
+        if hotel:
+            qs_clients = qs_clients.filter(hotel=hotel)
+        metrics['total_clients'] = qs_clients.count()
     except ImportError:
         metrics['total_clients'] = 120
     
     # Obtener alertas de mantenimiento
     try:
         from app.maintenance.models import MaintenanceRequest
-        metrics['maintenance_alerts'] = MaintenanceRequest.objects.select_related('room').filter(
-            status='pending'
-        ).order_by('-priority', '-created_at')[:5]
+        qs_m = MaintenanceRequest.objects.select_related('room').filter(status='pending')
+        if hotel:
+            qs_m = qs_m.filter(room__hotel=hotel)
+        metrics['maintenance_alerts'] = qs_m.order_by('-priority', '-created_at')[:5]
     except ImportError:
         metrics['maintenance_alerts'] = []
     
@@ -222,7 +242,8 @@ def dashboard_view(request):
     """Vista del dashboard principal"""
     
     # Registrar acceso al dashboard
-    log_user_action(request.user, 'dashboard_view', 'Usuario accedió al dashboard', request)
+    hotel_activo = get_hotel_activo(request)
+    log_user_action(request.user, 'dashboard_view', 'Usuario accedió al dashboard', request, hotel_activo)
     
     # Handle quick client creation
     if request.method == 'POST' and request.POST.get('action') == 'create_client':
@@ -241,7 +262,8 @@ def dashboard_view(request):
                     request.user, 
                     'nuevo_cliente', 
                     f'Cliente creado: {client.first_name} {client.last_name}', 
-                    request
+                    request,
+                    get_hotel_activo(request)
                 )
                 
                 return JsonResponse({
@@ -255,7 +277,7 @@ def dashboard_view(request):
             return JsonResponse({'success': False, 'error': str(e)})
     
     # Usar la función optimizada para obtener métricas
-    context = get_dashboard_metrics()
+    context = get_dashboard_metrics(hotel_activo)
     
     # Agregar datos adicionales específicos para la vista
     if CleaningTask:
@@ -266,6 +288,7 @@ def dashboard_view(request):
     else:
         context['cleaning_schedule'] = []
     
+    context['hotel'] = hotel_activo
     return render(request, 'dashboard.html', context)
 
 @login_required
@@ -291,26 +314,21 @@ def settings_view(request):
 @login_required
 def rooms_view(request):
     """Vista de habitaciones"""
-    log_user_action(request.user, 'gestionar_habitaciones', 'Usuario accedió a gestión de habitaciones', request)
+    hotel_activo = get_hotel_activo(request)
+    log_user_action(request.user, 'gestionar_habitaciones', 'Usuario accedió a gestión de habitaciones', request, hotel_activo)
     
     if Room:
-        hotel_slug = request.GET.get('hotel')
-        if hotel_slug:
-            try:
-                hotel = Hotel.objects.get(slug=hotel_slug)
-                rooms = Room.objects.filter(hotel=hotel)
-            except Hotel.DoesNotExist:
-                rooms = Room.objects.none()
-        else:
-            rooms = Room.objects.all()
+        base = Room.objects.all()
+        rooms = base.filter(hotel=hotel_activo) if hotel_activo else base.none()
     else:
         rooms = []
-    return render(request, 'rooms/list.html', {'rooms': rooms})
+    return render(request, 'rooms/list.html', {'rooms': rooms, 'hotel': hotel_activo})
 
 @login_required
 def bookings_view(request):
     """Vista de reservas"""
-    log_user_action(request.user, 'nueva_reserva', 'Usuario accedió a gestión de reservas', request)
+    hotel_activo = get_hotel_activo(request)
+    log_user_action(request.user, 'nueva_reserva', 'Usuario accedió a gestión de reservas', request, hotel_activo)
     
     if Booking:
         hotel_slug = request.GET.get('hotel')
@@ -324,53 +342,55 @@ def bookings_view(request):
         bookings = qs.all()
     else:
         bookings = []
-    return render(request, 'bookings/list.html', {'bookings': bookings})
+    return render(request, 'bookings/list.html', {'bookings': bookings, 'hotel': hotel_activo})
 
 @login_required
 def clients_view(request):
     """Vista de clientes"""
     if Client:
-        hotel_slug = request.GET.get('hotel')
-        if hotel_slug:
-            try:
-                hotel = Hotel.objects.get(slug=hotel_slug)
-                clients = Client.objects.filter(hotel=hotel)
-            except Hotel.DoesNotExist:
-                clients = Client.objects.none()
-        else:
-            clients = Client.objects.all()
+        hotel_activo = get_hotel_activo(request)
+        base = Client.objects.all()
+        clients = base.filter(hotel=hotel_activo) if hotel_activo else base.none()
     else:
         clients = []
-    return render(request, 'clients/list.html', {'clients': clients})
+    return render(request, 'clients/list.html', {'clients': clients, 'hotel': hotel_activo})
 
 @login_required
 def cleaning_view(request):
     """Vista de limpieza"""
+    hotel_activo = get_hotel_activo(request)
     if CleaningTask:
         tasks = CleaningTask.objects.select_related('room', 'employee').all()
+        if hotel_activo:
+            tasks = tasks.filter(room__hotel=hotel_activo)
     else:
         tasks = []
-    return render(request, 'cleaning/list.html', {'tasks': tasks})
+    return render(request, 'cleaning/list.html', {'tasks': tasks, 'hotel': hotel_activo})
 
 @login_required
 def maintenance_view(request):
     """Vista de mantenimiento"""
+    hotel_activo = get_hotel_activo(request)
     if MaintenanceRequest:
         requests = MaintenanceRequest.objects.select_related('room').all()
+        if hotel_activo:
+            requests = requests.filter(room__hotel=hotel_activo)
     else:
         requests = []
-    return render(request, 'maintenance/list.html', {'requests': requests})
+    return render(request, 'maintenance/list.html', {'requests': requests, 'hotel': hotel_activo})
 
 @login_required
 def administration_view(request):
     """Vista de administración"""
-    return render(request, 'administration/dashboard.html')
+    hotel_activo = get_hotel_activo(request)
+    return render(request, 'administration/dashboard.html', {'hotel': hotel_activo})
 
 @login_required
 def reports_view(request):
     """Vista de reportes"""
-    log_user_action(request.user, 'ver_reportes', 'Usuario accedió a reportes', request)
-    return render(request, 'reports/dashboard.html')
+    hotel_activo = get_hotel_activo(request)
+    log_user_action(request.user, 'ver_reportes', 'Usuario accedió a reportes', request, hotel_activo)
+    return render(request, 'reports/dashboard.html', {'hotel': hotel_activo})
 
 # ============================================================================
 # VISTAS DEL PORTAL DE CLIENTES
@@ -399,6 +419,24 @@ def client_index_view(request):
     }
     
     return render(request, 'client/index.html', context)
+
+def client_index_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse("Hotel no encontrado", status=404)
+    if Room:
+        base = Room.objects.filter(active=True, hotel=hotel)
+        available_rooms = base.filter(status='available').order_by('price')[:6]
+        featured_rooms = base.order_by('?')[:3]
+    else:
+        available_rooms = []
+        featured_rooms = []
+    return render(request, 'client/index.html', {
+        'available_rooms': available_rooms,
+        'featured_rooms': featured_rooms,
+        'hotel': hotel,
+    })
 
 def hotel_reserve_view(request, hotel_slug):
     try:
@@ -583,10 +621,72 @@ def client_rooms_view(request):
             'max_price': max_price,
             'guests': guests,
             'status': status_filter,
-        }
+        },
+        'hotel': hotel_activo,
     }
     
     return render(request, 'client/rooms.html', context)
+
+def client_rooms_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse("Hotel no encontrado", status=404)
+    if Room:
+        rooms = Room.objects.filter(active=True, hotel=hotel)
+        room_type = request.GET.get('type', '').strip()
+        min_price = request.GET.get('min_price', '').strip()
+        max_price = request.GET.get('max_price', '').strip()
+        guests = request.GET.get('guests', '').strip()
+        status_filter = request.GET.get('status', '').strip()
+        if room_type:
+            rooms = rooms.filter(type=room_type)
+        if min_price:
+            try:
+                min_price_val = float(min_price)
+                if min_price_val >= 0:
+                    rooms = rooms.filter(price__gte=min_price_val)
+            except Exception:
+                pass
+        if max_price:
+            try:
+                max_price_val = float(max_price)
+                if max_price_val >= 0:
+                    rooms = rooms.filter(price__lte=max_price_val)
+            except Exception:
+                pass
+        if guests:
+            try:
+                guests_val = int(guests)
+                if guests_val > 0:
+                    rooms = rooms.filter(capacity__gte=guests_val)
+            except Exception:
+                pass
+        if status_filter:
+            rooms = rooms.filter(status=status_filter)
+        else:
+            rooms = rooms.filter(status='available')
+        total_rooms = rooms.count()
+        available_rooms = rooms.filter(status='available').count()
+    else:
+        rooms = Room.objects.none()
+        total_rooms = 0
+        available_rooms = 0
+    return render(request, 'client/rooms.html', {
+        'rooms': rooms,
+        'room_types': Room.TYPE_CHOICES if Room else [],
+        'status_choices': Room.STATUS_CHOICES if Room else [],
+        'total_rooms': total_rooms,
+        'available_rooms': available_rooms,
+        'current_filters': {
+            'type': room_type,
+            'min_price': min_price,
+            'max_price': max_price,
+            'guests': guests,
+            'status': status_filter,
+        },
+        'hotel': hotel,
+    })
 
 def client_room_detail_view(request, room_id):
     """Vista detallada de una habitación"""
@@ -606,6 +706,23 @@ def client_room_detail_view(request, room_id):
     }
     
     return render(request, 'client/room_detail.html', context)
+
+def client_room_detail_hotel_view(request, hotel_slug, room_id):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        messages.error(request, 'Hotel no encontrado.')
+        return redirect('client_index')
+    if Room:
+        try:
+            room = Room.objects.get(id=room_id, hotel=hotel, active=True)
+        except Room.DoesNotExist:
+            messages.error(request, 'Habitación no encontrada.')
+            return redirect('client_rooms_hotel', hotel_slug=hotel_slug)
+    else:
+        messages.error(request, 'Sistema de habitaciones no disponible.')
+        return redirect('client_rooms_hotel', hotel_slug=hotel_slug)
+    return render(request, 'client/room_detail.html', {'room': room, 'hotel': hotel})
 
 def client_booking_view(request, room_id=None):
     """Vista para crear una reserva"""
@@ -762,6 +879,148 @@ def client_booking_view(request, room_id=None):
     
     return render(request, 'client/booking.html', context)
 
+def client_booking_hotel_view(request, hotel_slug, room_id=None):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Debes iniciar sesión para hacer una reserva.')
+        return redirect('client_login_hotel', hotel_slug=hotel_slug)
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if room_id:
+        try:
+            room = Room.objects.get(id=room_id, hotel=hotel, active=True)
+            if not room.available_for_booking:
+                messages.error(request, 'Esta habitación no está disponible para reservas.')
+                return redirect('client_rooms_hotel', hotel_slug=hotel_slug)
+        except Room.DoesNotExist:
+            messages.error(request, 'Habitación no encontrada.')
+            return redirect('client_rooms_hotel', hotel_slug=hotel_slug)
+    else:
+        room = None
+    if request.method == 'POST':
+        room_id_post = request.POST.get('room') or room_id
+        check_in = request.POST.get('check_in')
+        check_out = request.POST.get('check_out')
+        guests_count = request.POST.get('guests_count')
+        special_requests = request.POST.get('special_requests', '')
+        phone = request.POST.get('phone', '')
+        email = request.POST.get('email', '')
+        if room_id_post and check_in and check_out and guests_count:
+            try:
+                if not room:
+                    room = Room.objects.get(id=room_id_post, hotel=hotel, active=True)
+                if int(guests_count) > room.capacity:
+                    messages.error(request, f'La habitación solo tiene capacidad para {room.capacity} personas.')
+                    return render(request, 'client/booking.html', {
+                        'room': room,
+                        'available_rooms': Room.objects.filter(active=True, status='available', hotel=hotel),
+                        'hotel': hotel,
+                    })
+                from datetime import datetime, date
+                check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
+                check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
+                if check_in_date >= check_out_date:
+                    messages.error(request, 'La fecha de salida debe ser posterior a la fecha de entrada.')
+                    return render(request, 'client/booking.html', {
+                        'room': room,
+                        'available_rooms': Room.objects.filter(active=True, status='available', hotel=hotel),
+                        'hotel': hotel,
+                    })
+                today = date.today()
+                if check_in_date < today:
+                    messages.error(request, 'La fecha de entrada no puede ser en el pasado.')
+                    return render(request, 'client/booking.html', {
+                        'room': room,
+                        'available_rooms': Room.objects.filter(active=True, status='available', hotel=hotel),
+                        'hotel': hotel,
+                    })
+                if Booking and Client:
+                    if hasattr(hotel, 'can_accept_new_bookings') and not hotel.can_accept_new_bookings:
+                        messages.error(request, "Este hotel no está aceptando reservas en este momento. Por favor, contacta directamente al establecimiento.")
+                        return redirect('client_index_hotel', hotel_slug=hotel.slug)
+                    try:
+                        client = Client.objects.get(user=request.user)
+                    except Client.DoesNotExist:
+                        import random
+                        client_email = email or request.user.email
+                        if not client_email or Client.objects.filter(email=client_email).exists():
+                            client_email = f'{request.user.username}_{random.randint(1000, 9999)}@hotel.com'
+                        client = Client.objects.create(
+                            user=request.user,
+                            first_name=request.user.first_name or request.user.username,
+                            last_name=request.user.last_name or 'Usuario',
+                            email=client_email,
+                            dni=f'{random.randint(10000000, 99999999)}',
+                            phone=phone or f'+54911{random.randint(1000000, 9999999)}'
+                        )
+                    nights = (check_out_date - check_in_date).days
+                    total_price = room.price * nights
+                    booking = Booking.objects.create(
+                        hotel=hotel,
+                        client=client,
+                        room=room,
+                        check_in_date=check_in_date,
+                        check_out_date=check_out_date,
+                        guests_count=int(guests_count),
+                        special_requests=special_requests,
+                        total_price=total_price,
+                        status='confirmed'
+                    )
+                    try:
+                        from .services import EmailService
+                        email_result = EmailService.send_booking_confirmation(booking.id)
+                        if email_result.get('success'):
+                            messages.success(request, f'¡Reserva #{booking.id} creada exitosamente! Se ha enviado una confirmación a tu email.')
+                        else:
+                            messages.success(request, f'¡Reserva #{booking.id} creada exitosamente! (El email de confirmación no pudo ser enviado)')
+                    except Exception:
+                        messages.success(request, f'¡Reserva #{booking.id} creada exitosamente!')
+                    return redirect('client_booking_confirmation', booking_id=booking.id)
+                else:
+                    messages.error(request, 'Sistema de reservas no disponible.')
+            except ValidationError as e:
+                messages.error(request, f'Error de validación: {str(e)}')
+            except Exception as e:
+                messages.error(request, f'Error al crear la reserva: {str(e)}')
+        else:
+            messages.error(request, 'Por favor completa todos los campos requeridos.')
+    from datetime import date, timedelta
+    today = date.today()
+    min_checkout = today + timedelta(days=1)
+    context = {
+        'room': room,
+        'available_rooms': Room.objects.filter(active=True, status='available', hotel=hotel),
+        'today': today.isoformat(),
+        'min_checkout': min_checkout.isoformat(),
+        'hotel': hotel,
+    }
+    return render(request, 'client/booking.html', context)
+
+def booking_step1_hotel_view(request, hotel_slug):
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return booking_step1(request)
+
+def booking_step2_hotel_view(request, hotel_slug):
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return booking_step2(request)
+
+def booking_step3_hotel_view(request, hotel_slug):
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return booking_step3(request)
+
+def booking_step4_hotel_view(request, hotel_slug):
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return booking_step4(request)
+
 def get_room_availability(request, room_id):
     """API para obtener disponibilidad de una habitación por fechas"""
     if not Room:
@@ -905,6 +1164,24 @@ def client_my_bookings_view(request):
     
     return render(request, 'client/my_bookings.html', context)
 
+def client_my_bookings_hotel_view(request, hotel_slug):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Debes iniciar sesión para ver tus reservas.')
+        return redirect('client_login_hotel', hotel_slug=hotel_slug)
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if Booking and Client:
+        try:
+            client = Client.objects.get(user=request.user)
+        except Client.DoesNotExist:
+            return redirect('client_profile_hotel', hotel_slug=hotel_slug)
+        bookings = Booking.objects.filter(client=client, hotel=hotel).select_related('room').order_by('-created_at')
+    else:
+        bookings = []
+    return render(request, 'client/my_bookings.html', {'bookings': bookings, 'hotel': hotel})
+
 def client_booking_detail_view(request, booking_id):
     """Vista detallada de una reserva del cliente"""
     if not request.user.is_authenticated:
@@ -931,6 +1208,25 @@ def client_booking_detail_view(request, booking_id):
     
     return render(request, 'client/booking_detail.html', context)
 
+def client_booking_detail_hotel_view(request, hotel_slug, booking_id):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Debes iniciar sesión para ver esta reserva.')
+        return redirect('client_login_hotel', hotel_slug=hotel_slug)
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if Booking:
+        try:
+            booking = Booking.objects.get(id=booking_id, client__user=request.user, hotel=hotel)
+        except Booking.DoesNotExist:
+            messages.error(request, 'Reserva no encontrada.')
+            return redirect('client_my_bookings_hotel', hotel_slug=hotel_slug)
+    else:
+        messages.error(request, 'Sistema de reservas no disponible.')
+        return redirect('client_my_bookings_hotel', hotel_slug=hotel_slug)
+    return render(request, 'client/booking_detail.html', {'booking': booking, 'hotel': hotel})
+
 def client_cancel_booking_view(request, booking_id):
     """Vista para cancelar una reserva"""
     if not request.user.is_authenticated:
@@ -953,6 +1249,20 @@ def client_cancel_booking_view(request, booking_id):
             messages.error(request, 'Sistema de reservas no disponible.')
     
     return redirect('client_my_bookings')
+
+def client_cancel_booking_hotel_view(request, hotel_slug, booking_id):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Debes iniciar sesión para cancelar una reserva.')
+        return redirect('client_login_hotel', hotel_slug=hotel_slug)
+    if request.method == 'POST' and Booking:
+        try:
+            hotel = Hotel.objects.get(slug=hotel_slug)
+            booking = Booking.objects.get(id=booking_id, client__user=request.user, hotel=hotel, status__in=['pending', 'confirmed'])
+            booking.cancel_booking()
+            messages.success(request, 'Reserva cancelada exitosamente.')
+        except Exception:
+            messages.error(request, 'Reserva no encontrada o no se puede cancelar.')
+    return redirect('client_my_bookings_hotel', hotel_slug=hotel_slug)
 
 def client_profile_view(request):
     """Vista del perfil del cliente"""
@@ -984,6 +1294,30 @@ def client_profile_view(request):
     
     return render(request, 'client/profile.html', context)
 
+def client_profile_hotel_view(request, hotel_slug):
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Debes iniciar sesión para ver tu perfil.')
+        return redirect('client_login_hotel', hotel_slug=hotel_slug)
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if request.method == 'POST':
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.save()
+        if hasattr(request.user, 'client') and Client:
+            client = request.user.client
+            client.phone = request.POST.get('phone', client.phone)
+            client.address = request.POST.get('address', client.address)
+            client.nationality = request.POST.get('nationality', client.nationality)
+            client.save()
+        messages.success(request, 'Perfil actualizado exitosamente.')
+        return redirect('client_profile_hotel', hotel_slug=hotel_slug)
+    return render(request, 'client/profile.html', {'client': getattr(request.user, 'client', None) if Client else None, 'hotel': hotel})
+
 def client_login_view(request):
     """Vista de login para clientes"""
     if request.user.is_authenticated:
@@ -1000,15 +1334,46 @@ def client_login_view(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            login(request, user)
-            if not remember:
-                request.session.set_expiry(0)
-            messages.success(request, f'¡Bienvenido, {user.get_full_name() or user.username}!')
-            return redirect('client_index')
+            is_client = hasattr(user, 'client') and getattr(user, 'client') is not None
+            if not is_client:
+                messages.error(request, 'Solo los clientes pueden iniciar sesión en el portal.')
+            else:
+                login(request, user)
+                if not remember:
+                    request.session.set_expiry(0)
+                messages.success(request, f'¡Bienvenido, {user.get_full_name() or user.username}!')
+                return redirect('client_index')
         else:
             messages.error(request, 'Usuario o contraseña incorrectos.')
     
     return render(request, 'client/login.html', {'username_from_register': username_from_register})
+
+def client_login_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if request.user.is_authenticated:
+        return redirect('client_index_hotel', hotel_slug=hotel_slug)
+    username_from_register = request.GET.get('username', '')
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        remember = request.POST.get('remember')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            is_client = hasattr(user, 'client') and getattr(user, 'client') is not None
+            if not is_client:
+                messages.error(request, 'Solo los clientes pueden iniciar sesión en el portal.')
+            else:
+                login(request, user)
+                if not remember:
+                    request.session.set_expiry(0)
+                messages.success(request, f'¡Bienvenido, {user.get_full_name() or user.username}!')
+                return redirect('client_index_hotel', hotel_slug=hotel_slug)
+        else:
+            messages.error(request, 'Usuario o contraseña incorrectos.')
+    return render(request, 'client/login.html', {'username_from_register': username_from_register, 'hotel': hotel})
 
 def client_register_view(request):
     """Vista de registro para clientes con validaciones mejoradas"""
@@ -1042,11 +1407,38 @@ def client_register_view(request):
     
     return render(request, 'client/register.html', {'form': form})
 
+def client_register_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if request.user.is_authenticated:
+        return redirect('client_index_hotel', hotel_slug=hotel_slug)
+    if request.method == 'POST':
+        form = ClientRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            try:
+                from django.db import transaction
+                transaction.on_commit(lambda: update_client_additional_fields(user, form.cleaned_data))
+            except Exception:
+                pass
+            messages.success(request, '¡Cuenta creada exitosamente! Ahora puedes iniciar sesión con tus credenciales.')
+            return redirect(f'/h/{hotel_slug}/portal/login/?username={user.username}')
+    else:
+        form = ClientRegistrationForm()
+    return render(request, 'client/register.html', {'form': form, 'hotel': hotel})
+
 def client_logout_view(request):
     """Vista para cerrar sesión de clientes"""
     logout(request)
     messages.info(request, 'Has cerrado sesión exitosamente.')
     return redirect('client_index')
+
+def client_logout_hotel_view(request, hotel_slug):
+    logout(request)
+    messages.info(request, 'Has cerrado sesión exitosamente.')
+    return redirect('client_index_hotel', hotel_slug=hotel_slug)
 
 def update_client_additional_fields(user, form_data):
     """Función auxiliar para actualizar campos adicionales del cliente"""
@@ -1223,6 +1615,18 @@ def is_superadmin(user):
         or user.groups.filter(name='superadmin').exists()
         or (getattr(settings, 'DEBUG', False) and getattr(user, 'is_authenticated', False))
     )
+
+def is_hotel_admin(user, hotel):
+    try:
+        return HotelAdmin.objects.filter(user=user, hotel=hotel).exists()
+    except Exception:
+        return False
+
+def is_hotel_staff(user, hotel):
+    try:
+        return HotelStaff.objects.filter(user=user, hotel=hotel).exists()
+    except Exception:
+        return False
 
 @login_required
 def superadmin_dashboard_view(request):
@@ -1448,10 +1852,40 @@ def superadmin_api_ia_analisis(request):
     }
     try:
         ia_result = call_n8n_ia_analyst(payload)
+        try:
+            from app.core.models import ActionLog
+            ActionLog.objects.create(
+                user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+                action='superadmin_ia_analisis',
+                description=f"scope={scope}, hotel_id={getattr(hotel, 'id', None)}, status=200",
+                hotel=hotel
+            )
+        except Exception:
+            pass
         return JsonResponse(ia_result, status=200)
     except IAServiceNotConfigured:
+        try:
+            from app.core.models import ActionLog
+            ActionLog.objects.create(
+                user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+                action='superadmin_ia_analisis',
+                description=f"scope={scope}, hotel_id={getattr(hotel, 'id', None)}, status=503(ia_not_configured)",
+                hotel=hotel
+            )
+        except Exception:
+            pass
         return JsonResponse({'error': 'ia_not_configured'}, status=503)
     except IAServiceError as e:
+        try:
+            from app.core.models import ActionLog
+            ActionLog.objects.create(
+                user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+                action='superadmin_ia_analisis',
+                description=f"scope={scope}, hotel_id={getattr(hotel, 'id', None)}, status=503(ia_error)",
+                hotel=hotel
+            )
+        except Exception:
+            pass
         return JsonResponse({'error': 'ia_error', 'detail': str(e)}, status=503)
 
 @login_required
@@ -1523,10 +1957,40 @@ def superadmin_api_ia_chat(request):
     }
     try:
         ia_result = call_n8n_ia_analyst(payload)
+        try:
+            from app.core.models import ActionLog
+            ActionLog.objects.create(
+                user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+                action='superadmin_ia_analisis',
+                description=f"scope={scope}, hotel_id={hotel_id}, status=200",
+                hotel=hotel
+            )
+        except Exception:
+            pass
         return JsonResponse(ia_result, status=200)
     except IAServiceNotConfigured:
+        try:
+            from app.core.models import ActionLog
+            ActionLog.objects.create(
+                user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+                action='superadmin_ia_analisis',
+                description=f"scope={scope}, hotel_id={hotel_id}, status=503(ia_not_configured)",
+                hotel=hotel
+            )
+        except Exception:
+            pass
         return JsonResponse({'error': 'ia_not_configured'}, status=503)
     except IAServiceError:
+        try:
+            from app.core.models import ActionLog
+            ActionLog.objects.create(
+                user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+                action='superadmin_ia_analisis',
+                description=f"scope={scope}, hotel_id={hotel_id}, status=503(ia_error)",
+                hotel=hotel
+            )
+        except Exception:
+            pass
         return JsonResponse({'error': 'IA no disponible en este momento'}, status=503)
 
 @login_required
@@ -1549,7 +2013,49 @@ def superadmin_hotel_detail_view(request, hotel_id):
         return HttpResponseForbidden()
     from django.shortcuts import get_object_or_404
     hotel = get_object_or_404(Hotel, id=hotel_id)
-    return render(request, 'superadmin/hotel_detail.html', {'hotel': hotel})
+    try:
+        from app.rooms.models import Room as RModel
+        from app.bookings.models import Booking as BModel
+        today = timezone.now().date()
+        rooms_qs = RModel.objects.filter(hotel=hotel)
+        total_rooms = rooms_qs.count()
+        cleaning_rooms = rooms_qs.filter(status='cleaning').count()
+        maintenance_rooms = rooms_qs.filter(status='maintenance').count()
+        reserved_rooms = rooms_qs.filter(status='reserved').count()
+        available_rooms = rooms_qs.filter(status='available').count()
+        occupied_distinct = BModel.objects.filter(hotel=hotel, status='confirmed', check_in_date__lte=today, check_out_date__gte=today).values('room').distinct().count()
+        rooms_list = []
+        recent_bookings_map = {}
+        recent = list(BModel.objects.filter(hotel=hotel).select_related('room', 'client').order_by('-created_at')[:200])
+        for b in recent:
+            k = getattr(b.room, 'id', None)
+            if k is None:
+                continue
+            arr = recent_bookings_map.get(k) or []
+            if len(arr) < 3:
+                arr.append({'id': b.id, 'check_in': str(getattr(b, 'check_in_date', '')), 'check_out': str(getattr(b, 'check_out_date', '')), 'status': b.status})
+            recent_bookings_map[k] = arr
+        for r in rooms_qs.order_by('number')[:200]:
+            rooms_list.append({
+                'id': r.id,
+                'number': r.number,
+                'type': r.type,
+                'capacity': r.capacity,
+                'price': float(r.price),
+                'status': r.status,
+                'recent': recent_bookings_map.get(r.id, []),
+            })
+        import json
+        context = {
+            'hotel': hotel,
+            'rooms': rooms_list,
+            'rooms_labels': json.dumps(['Disponibles', 'Ocupadas', 'Limpieza', 'Mantenimiento', 'Reservadas']),
+            'rooms_counts': json.dumps([available_rooms, occupied_distinct, cleaning_rooms, maintenance_rooms, reserved_rooms]),
+            'total_rooms': total_rooms,
+        }
+    except Exception:
+        context = {'hotel': hotel, 'rooms': [], 'rooms_labels': '[]', 'rooms_counts': '[]', 'total_rooms': 0}
+    return render(request, 'superadmin/hotel_detail.html', context)
 
 @login_required
 def superadmin_block_hotel(request, hotel_id):
@@ -1580,15 +2086,42 @@ def superadmin_audit_actions_view(request):
     if not is_superadmin(request.user):
         return HttpResponseForbidden()
     from app.core.models import ActionLog
-    hotel_id = request.GET.get('hotel')
-    qs = ActionLog.objects.select_related('user').order_by('-created_at')
-    if hotel_id:
-        try:
-            h = Hotel.objects.get(id=hotel_id)
-            qs = qs.filter(description__icontains=h.name)
-        except Hotel.DoesNotExist:
-            qs = qs.none()
-    return render(request, 'superadmin/audit_actions.html', {'logs': qs})
+    from django.db.models.functions import TruncDate
+    qs = ActionLog.objects.select_related('user', 'hotel').order_by('-created_at')
+    dist = list(qs.values('action').annotate(total=Count('id')).order_by('-total'))
+    daily = list(qs.annotate(date=TruncDate('created_at')).values('date', 'action').annotate(total=Count('id')).order_by('date'))
+    top_users = list(qs.values('user__username').annotate(total=Count('id')).order_by('-total')[:10])
+    hotels = Hotel.objects.all().order_by('name')
+    hotels_labels = []
+    hotels_totals = []
+    for h in hotels:
+        hotels_labels.append(h.name)
+        hotels_totals.append(qs.filter(hotel=h).count())
+    # Datos robustos desde otras tablas
+    try:
+        from app.bookings.models import Booking as BModel
+        bookings_per_hotel = list(BModel.objects.values('hotel__name').annotate(total=Count('id')).order_by('-total'))
+    except Exception:
+        bookings_per_hotel = []
+    try:
+        from app.core.models import EmailLog as EModel
+        emails_qs = EModel.objects.all()
+        emails_per_hotel = list(
+            emails_qs.values('booking__hotel__name').annotate(total=Count('id')).order_by('-total')
+        )
+    except Exception:
+        emails_per_hotel = []
+    import json
+    context = {
+        'distribution': json.dumps(dist, default=str),
+        'daily_series': json.dumps(daily, default=str),
+        'top_users': json.dumps(top_users, default=str),
+        'hotels_labels': json.dumps(hotels_labels, default=str),
+        'hotels_totals': json.dumps(hotels_totals, default=str),
+        'bookings_per_hotel': json.dumps(bookings_per_hotel, default=str),
+        'emails_per_hotel': json.dumps(emails_per_hotel, default=str),
+    }
+    return render(request, 'superadmin/audit_actions.html', context)
 
 @login_required
 def superadmin_audit_emails_view(request):
@@ -1609,20 +2142,114 @@ def superadmin_audit_emails_view(request):
 def superadmin_users_list_view(request):
     if not is_superadmin(request.user):
         return HttpResponseForbidden()
-    from django.contrib.auth.models import User, Group
-    users = User.objects.all().order_by('username')
+    from django.contrib.auth.models import Group
+    search = request.GET.get('search', '').strip()
+    hotel_param = request.GET.get('hotel')
+    hotels = Hotel.objects.all().order_by('name')
+    hotel_selected = None
+    if hotel_param:
+        try:
+            hotel_selected = Hotel.objects.get(id=int(hotel_param))
+        except Exception:
+            try:
+                hotel_selected = Hotel.objects.get(slug=str(hotel_param))
+            except Hotel.DoesNotExist:
+                hotel_selected = None
+    qs_users = get_user_model().objects.exclude(client__isnull=False)
+    if search:
+        qs_users = qs_users.filter(Q(username__icontains=search) | Q(first_name__icontains=search) | Q(last_name__icontains=search))
+    users = qs_users.order_by('username')
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         role = request.POST.get('role')
+        hotel_param = request.POST.get('hotel')
         try:
-            u = User.objects.get(id=user_id)
-            g, _ = Group.objects.get_or_create(name=role)
-            u.groups.add(g)
-            messages.success(request, 'Rol asignado')
+            u = get_user_model().objects.get(id=user_id)
+            hotel = None
+            if hotel_param:
+                try:
+                    hotel = Hotel.objects.get(id=int(hotel_param))
+                except Exception:
+                    try:
+                        hotel = Hotel.objects.get(slug=str(hotel_param))
+                    except Hotel.DoesNotExist:
+                        hotel = None
+            if role == 'hotel_admin':
+                if hotel:
+                    HotelAdmin.objects.update_or_create(hotel=hotel, defaults={'user': u})
+                    u.is_staff = True
+                    u.save(update_fields=['is_staff'])
+                    messages.success(request, 'Admin de hotel asignado')
+                else:
+                    messages.error(request, 'Hotel inválido')
+            elif role == 'hotel_staff':
+                if hotel:
+                    from app.administration.models import HotelStaff
+                    HotelStaff.objects.update_or_create(hotel=hotel, user=u, defaults={})
+                    messages.success(request, 'Staff de hotel asignado')
+                else:
+                    messages.error(request, 'Hotel inválido')
+            elif role == 'remove_hotel_admin':
+                from app.administration.models import HotelAdmin as HAdmin
+                qs = HAdmin.objects.filter(user=u)
+                if hotel:
+                    qs = qs.filter(hotel=hotel)
+                count, _ = qs.delete()
+                messages.success(request, f'Removido admin ({count})')
+            elif role == 'remove_hotel_staff':
+                from app.administration.models import HotelStaff
+                qs = HotelStaff.objects.filter(user=u)
+                if hotel:
+                    qs = qs.filter(hotel=hotel)
+                count, _ = qs.delete()
+                messages.success(request, f'Removido staff ({count})')
+            else:
+                g, _ = Group.objects.get_or_create(name=role)
+                u.groups.add(g)
+                messages.success(request, 'Rol asignado')
         except Exception:
             messages.error(request, 'No se pudo asignar el rol')
         return redirect('superadmin_users')
-    return render(request, 'superadmin/users_list.html', {'users': users})
+    from app.administration.models import HotelAdmin as HAdmin
+    from app.administration.models import HotelStaff as HStaff
+    if hotel_selected:
+        admin_ids = list(HAdmin.objects.filter(hotel=hotel_selected).values_list('user_id', flat=True))
+        staff_ids = list(HStaff.objects.filter(hotel=hotel_selected).values_list('user_id', flat=True))
+        ids = set(admin_ids) | set(staff_ids)
+        users = users.filter(id__in=ids)
+    hotels_roles = []
+    roles_chart_labels = []
+    roles_chart_admins = []
+    roles_chart_staff = []
+    for h in hotels:
+        admins = list(HAdmin.objects.select_related('user').filter(hotel=h))
+        staff = list(HStaff.objects.select_related('user').filter(hotel=h))
+        hotels_roles.append({'hotel': h, 'admins': admins, 'staff': staff})
+        roles_chart_labels.append(h.name)
+        roles_chart_admins.append(len(admins))
+        roles_chart_staff.append(len(staff))
+    user_hotels = {}
+    if users:
+        admin_links = HAdmin.objects.select_related('hotel').filter(user__in=users)
+        staff_links = HStaff.objects.select_related('hotel').filter(user__in=users)
+        for a in admin_links:
+            user_hotels.setdefault(a.user_id, []).append({'hotel_id': a.hotel_id, 'hotel_name': a.hotel.name, 'role': 'admin'})
+        for s in staff_links:
+            user_hotels.setdefault(s.user_id, []).append({'hotel_id': s.hotel_id, 'hotel_name': s.hotel.name, 'role': 'staff'})
+        for u in users:
+            setattr(u, 'hotel_links', user_hotels.get(u.id, []))
+    context = {
+        'users': users,
+        'hotels': hotels,
+        'hotel_selected': hotel_selected,
+        'search': search,
+        'hotels_roles': hotels_roles,
+        'roles_chart_labels': roles_chart_labels,
+        'roles_chart_admins': roles_chart_admins,
+        'roles_chart_staff': roles_chart_staff,
+        'user_hotels': user_hotels,
+    }
+    return render(request, 'superadmin/users_list.html', context)
 
 @login_required
 def superadmin_export_bookings_csv(request):
@@ -1671,3 +2298,239 @@ def get_hotel_activo(request):
         return Hotel.objects.order_by('id').first()
     except Exception:
         return None
+# Wrappers slug-based para panel
+@login_required
+def panel_dashboard_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_staff(request.user, hotel) or is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return dashboard_view(request)
+
+@login_required
+def panel_rooms_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_staff(request.user, hotel) or is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return rooms_view(request)
+
+@login_required
+def panel_bookings_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_staff(request.user, hotel) or is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return bookings_view(request)
+
+@login_required
+def panel_clients_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_staff(request.user, hotel) or is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return clients_view(request)
+
+@login_required
+def panel_cleaning_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_staff(request.user, hotel) or is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return cleaning_view(request)
+
+@login_required
+def panel_maintenance_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_staff(request.user, hotel) or is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return maintenance_view(request)
+
+@login_required
+def panel_administration_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return administration_view(request)
+
+@login_required
+def panel_reports_hotel_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    q = request.GET.copy()
+    q['hotel'] = hotel_slug
+    request.GET = q
+    return reports_view(request)
+
+@login_required
+@require_http_methods(["POST"])
+def panel_change_booking_status_hotel_view(request, hotel_slug, booking_id):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        messages.error(request, 'Hotel no encontrado')
+        return redirect('panel_dashboard')
+    if not (is_hotel_staff(request.user, hotel) or is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    new_status = request.POST.get('status')
+    try:
+        b = Booking.objects.get(id=booking_id, hotel=hotel)
+        if new_status in dict(Booking.STATUS_CHOICES):
+            b.status = new_status
+            b.save(update_fields=['status'])
+            messages.success(request, 'Estado actualizado')
+        else:
+            messages.error(request, 'Estado inválido')
+    except Booking.DoesNotExist:
+        messages.error(request, 'Reserva no encontrada')
+    return redirect('panel_booking_detail_hotel', hotel_slug=hotel_slug, booking_id=booking_id)
+# ===== CRUD de Usuarios por Hotel (solo hotel_admin o superadmin) =====
+@login_required
+def hotel_users_list_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    admins = HotelAdmin.objects.filter(hotel=hotel).select_related('user')
+    staff = HotelStaff.objects.filter(hotel=hotel).select_related('user')
+    return render(request, 'users/list.html', {'hotel': hotel, 'admins': admins, 'staff': staff})
+
+@login_required
+def hotel_user_create_view(request, hotel_slug):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '').strip()
+        role = request.POST.get('role', 'staff')
+        if not username or not password:
+            messages.error(request, 'Usuario y contraseña son obligatorios')
+        else:
+            if get_user_model().objects.filter(username=username).exists():
+                messages.error(request, 'El usuario ya existe')
+            else:
+                u = get_user_model().objects.create_user(username=username, email=email, password=password)
+                if role == 'admin':
+                    HotelAdmin.objects.update_or_create(hotel=hotel, defaults={'user': u})
+                    u.is_staff = True
+                    u.save(update_fields=['is_staff'])
+                else:
+                    HotelStaff.objects.update_or_create(hotel=hotel, user=u, defaults={'role': role})
+                messages.success(request, 'Usuario creado')
+                return redirect('hotel_users_list', hotel_slug=hotel_slug)
+    return render(request, 'users/form.html', {'hotel': hotel, 'mode': 'create'})
+
+@login_required
+def hotel_user_edit_view(request, hotel_slug, user_id):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    try:
+        u = get_user_model().objects.get(id=user_id)
+    except User.DoesNotExist:
+        return HttpResponse('Usuario no encontrado', status=404)
+    current_role = 'staff'
+    if HotelAdmin.objects.filter(hotel=hotel, user=u).exists():
+        current_role = 'admin'
+    elif HotelStaff.objects.filter(hotel=hotel, user=u).exists():
+        st = HotelStaff.objects.get(hotel=hotel, user=u)
+        current_role = st.role or 'staff'
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip()
+        role = request.POST.get('role', current_role)
+        active = request.POST.get('active') == 'on'
+        u.email = email
+        u.is_active = active
+        u.save(update_fields=['email', 'is_active'])
+        if role == 'admin':
+            HotelAdmin.objects.update_or_create(hotel=hotel, defaults={'user': u})
+            HotelStaff.objects.filter(user=u).delete()
+            u.is_staff = True
+            u.save(update_fields=['is_staff'])
+        else:
+            HotelAdmin.objects.filter(hotel=hotel, user=u).delete()
+            HotelStaff.objects.update_or_create(hotel=hotel, user=u, defaults={'role': role})
+        messages.success(request, 'Usuario actualizado')
+        return redirect('hotel_users_list', hotel_slug=hotel_slug)
+    return render(request, 'users/form.html', {'hotel': hotel, 'mode': 'edit', 'user_obj': u, 'current_role': current_role})
+
+@login_required
+def hotel_user_delete_view(request, hotel_slug, user_id):
+    try:
+        hotel = Hotel.objects.get(slug=hotel_slug)
+    except Hotel.DoesNotExist:
+        return HttpResponse('Hotel no encontrado', status=404)
+    if not (is_hotel_admin(request.user, hotel) or is_superadmin(request.user)):
+        return HttpResponseForbidden()
+    try:
+        u = get_user_model().objects.get(id=user_id)
+    except User.DoesNotExist:
+        return HttpResponse('Usuario no encontrado', status=404)
+    if request.method == 'POST':
+        HotelAdmin.objects.filter(hotel=hotel, user=u).delete()
+        HotelStaff.objects.filter(hotel=hotel, user=u).delete()
+        u.is_active = False
+        u.save(update_fields=['is_active'])
+        messages.success(request, 'Usuario desactivado y removido de roles del hotel')
+        return redirect('hotel_users_list', hotel_slug=hotel_slug)
+    return render(request, 'users/confirm_delete.html', {'hotel': hotel, 'user_obj': u})
+from django.db import connection
+def health_view(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1;")
+        status = "ok"
+    except Exception:
+        status = "error"
+    return JsonResponse({"status": status})

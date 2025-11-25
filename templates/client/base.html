@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}O11CE Hotel - Portal de Clientes{% endblock %}</title>
+    <title>{% block title %}{{ hotel.name|default:"O11CE Hotel" }} - Portal de Clientes{% endblock %}</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -537,9 +537,9 @@
     <header class="client-header">
         <nav class="navbar navbar-expand-lg">
             <div class="container">
-                <a class="navbar-brand" href="{% url 'client_index' %}">
+                <a class="navbar-brand" href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}">
                     <i class="fas fa-hotel me-2"></i>
-                    O11CE Hotel
+                    {{ hotel.name|default:"O11CE Hotel" }}
                 </a>
                 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -549,23 +549,23 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'client_index' %}">
+                            <a class="nav-link" href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}">
                                 <i class="fas fa-home me-1"></i>Inicio
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'booking_step1' %}">
+                            <a class="nav-link" href="{% if hotel %}{% url 'client_booking_step1_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}">
                                 <i class="fas fa-calendar-plus me-1"></i>Hacer Reserva
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'client_rooms' %}">
+                            <a class="nav-link" href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}">
                                 <i class="fas fa-bed me-1"></i>Habitaciones
                             </a>
                         </li>
                         {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'my_bookings' %}">
+                            <a class="nav-link" href="{% if hotel %}{% url 'client_my_bookings_hotel' hotel.slug %}{% else %}{% url 'my_bookings' %}{% endif %}">
                                 <i class="fas fa-calendar-check me-1"></i>Mis Reservas
                             </a>
                         </li>
@@ -579,23 +579,23 @@
                                 <i class="fas fa-user me-1"></i>{{ user.get_full_name|default:user.username }}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'client_profile' %}">
+                                <li><a class="dropdown-item" href="{% if hotel %}{% url 'client_profile_hotel' hotel.slug %}{% else %}{% url 'client_profile' %}{% endif %}">
                                     <i class="fas fa-user-edit me-2"></i>Mi Perfil
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'client_logout' %}">
+                                <li><a class="dropdown-item" href="{% if hotel %}{% url 'client_logout_hotel' hotel.slug %}{% else %}{% url 'client_logout' %}{% endif %}">
                                     <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
                                 </a></li>
                             </ul>
                         </li>
                         {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'client_login' %}">
+                            <a class="nav-link" href="{% if hotel %}{% url 'client_login_hotel' hotel.slug %}{% else %}{% url 'client_login' %}{% endif %}">
                                 <i class="fas fa-sign-in-alt me-1"></i>Iniciar Sesión
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-outline-light ms-2" href="{% url 'client_register' %}">
+                            <a class="btn btn-outline-light ms-2" href="{% if hotel %}{% url 'client_register_hotel' hotel.slug %}{% else %}{% url 'client_register' %}{% endif %}">
                                 <i class="fas fa-user-plus me-1"></i>Registrarse
                             </a>
                         </li>
@@ -629,7 +629,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-4 mb-4">
-                    <h5><i class="fas fa-hotel me-2"></i>O11CE Hotel</h5>
+                    <h5><i class="fas fa-hotel me-2"></i>{{ hotel.name|default:"O11CE Hotel" }}</h5>
                     <p class="text-muted">
                         Tu destino de confianza para una experiencia hotelera excepcional. 
                         Ofrecemos comodidad, lujo y servicio de primera clase.
@@ -645,10 +645,10 @@
                     <h5>Enlaces</h5>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'client_index' %}">Inicio</a>
+                            <a class="nav-link" href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}">Inicio</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'client_rooms' %}">Habitaciones</a>
+                            <a class="nav-link" href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}">Habitaciones</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">Servicios</a>
@@ -679,18 +679,18 @@
                     <h5>Contacto</h5>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="tel:+1234567890">
-                                <i class="fas fa-phone me-2"></i>+1 (234) 567-890
+                            <a class="nav-link" href="{% if hotel and hotel.phone %}tel:{{ hotel.phone }}{% else %}#{% endif %}">
+                                <i class="fas fa-phone me-2"></i>{{ hotel.phone|default:"+1 (234) 567-890" }}
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="mailto:info@o11ce.com">
-                                <i class="fas fa-envelope me-2"></i>info@o11ce.com
+                            <a class="nav-link" href="{% if hotel and hotel.email_contact %}mailto:{{ hotel.email_contact }}{% else %}#{% endif %}">
+                                <i class="fas fa-envelope me-2"></i>{{ hotel.email_contact|default:"info@o11ce.com" }}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">
-                                <i class="fas fa-map-marker-alt me-2"></i>123 Hotel Street, City
+                                <i class="fas fa-map-marker-alt me-2"></i>{{ hotel.address|default:"123 Hotel Street, City" }}
                             </a>
                         </li>
                     </ul>
@@ -700,7 +700,7 @@
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <p class="mb-0 text-muted">
-                        &copy; 2024 O11CE Hotel. Todos los derechos reservados.
+                        &copy; {% now "Y" %} {{ hotel.name|default:"O11CE Hotel" }}. Todos los derechos reservados.
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">

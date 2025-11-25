@@ -75,18 +75,39 @@ class Booking(models.Model):
             
             if self.check_in_date < timezone.now().date():
                 raise ValidationError('No se pueden hacer reservas para fechas pasadas')
+        # Hotel requerido: usar el de la habitación si no está seteado
+        if not self.hotel:
+            if self.room and getattr(self.room, 'hotel', None):
+                self.hotel = self.room.hotel
+            else:
+                raise ValidationError({'hotel': 'La reserva debe estar asociada a un hotel'})
+        # Coherencia de hotel entre habitación y reserva
+        if self.room and self.room.hotel and self.hotel and self.room.hotel != self.hotel:
+            raise ValidationError('La habitación seleccionada no pertenece al hotel de la reserva')
     
     def save(self, *args, **kwargs):
         """Sobrescribir save para calcular precio total, validar disponibilidad y enviar email"""
         skip_validation = kwargs.pop('skip_validation', False)
         is_new_booking = not self.pk  # Verificar si es una nueva reserva
         
+        # Asegurar asociación de hotel
+        if not self.hotel and self.room and getattr(self.room, 'hotel', None):
+            self.hotel = self.room.hotel
+
         if is_new_booking and not skip_validation:  # Solo para nuevas reservas
             self.validate_availability()
             self.calculate_total_price()
         
         super().save(*args, **kwargs)
         
+        # Sincronizar hotel del cliente si corresponde
+        try:
+            if self.client and self.hotel and getattr(self.client, 'hotel', None) != self.hotel:
+                self.client.hotel = self.hotel
+                self.client.save(update_fields=['hotel'])
+        except Exception:
+            pass
+
         # Enviar email de confirmación automáticamente para nuevas reservas confirmadas
         if is_new_booking and self.status == 'confirmed' and not skip_validation:
             try:

@@ -1,9 +1,11 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from .models import Client
 
+
+UserModel = get_user_model()
 
 class ClientRegistrationForm(UserCreationForm):
     """Formulario personalizado para registro de clientes con validaciones mejoradas"""
@@ -69,7 +71,7 @@ class ClientRegistrationForm(UserCreationForm):
     )
 
     class Meta:
-        model = User
+        model = UserModel
         fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2')
         widgets = {
             'username': forms.TextInput(attrs={
@@ -99,7 +101,7 @@ class ClientRegistrationForm(UserCreationForm):
         """Validación personalizada para nombre de usuario"""
         username = self.cleaned_data.get('username')
         
-        if User.objects.filter(username=username).exists():
+        if UserModel.objects.filter(username=username).exists():
             raise ValidationError(
                 "Este nombre de usuario ya está en uso. Por favor, elige otro nombre de usuario único."
             )
@@ -117,7 +119,7 @@ class ClientRegistrationForm(UserCreationForm):
         email = self.cleaned_data.get('email')
         
         # Verificar si el email ya existe en User
-        if User.objects.filter(email=email).exists():
+        if UserModel.objects.filter(email=email).exists():
             raise ValidationError(
                 "Ya existe una cuenta registrada con este correo electrónico. "
                 "Si ya tienes una cuenta, puedes iniciar sesión o recuperar tu contraseña."

@@ -22,7 +22,10 @@
 <section class="py-4">
     <div class="container">
         <div class="search-box">
-            <form method="GET" action="{% url 'client_rooms' %}" id="filter-form">
+            <form method="GET" action="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" id="filter-form">
+                {% if hotel %}
+                <input type="hidden" name="hotel" value="{% if hotel.id %}{{ hotel.id }}{% else %}{{ hotel.slug }}{% endif %}">
+                {% endif %}
                 <div class="row g-3">
                     <div class="col-lg-2 col-md-6">
                         <label for="type" class="form-label fw-bold">Tipo de Habitación</label>
@@ -79,7 +82,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search me-2"></i>Buscar
                             </button>
-                            <a href="{% url 'client_rooms' %}" class="btn btn-outline-secondary btn-sm">
+                            <a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
                                 <i class="fas fa-times me-1"></i>Limpiar
                             </a>
                         </div>
@@ -249,17 +252,17 @@
                         
                         <!-- Botones de acción -->
                         <div class="room-actions">
-                            <a href="{% url 'client_room_detail' room.id %}" class="btn btn-outline-primary btn-action">
+                            <a href="{% if hotel %}{% url 'client_room_detail_hotel' hotel.slug room.id %}{% else %}{% url 'client_room_detail' room.id %}{% endif %}" class="btn btn-outline-primary btn-action">
                                 <i class="fas fa-info-circle me-2"></i>Ver Detalles
                             </a>
                             
                             {% if room.status == 'available' %}
                                 {% if user.is_authenticated %}
-                                <a href="{% url 'client_booking_room' room.id %}" class="btn btn-success btn-action btn-reserve">
+                                <a href="{% if hotel %}{% url 'client_booking_room_hotel' hotel.slug room.id %}{% else %}{% url 'client_booking_room' room.id %}{% endif %}" class="btn btn-success btn-action btn-reserve">
                                     <i class="fas fa-calendar-plus me-2"></i>Reservar Ahora
                                 </a>
                                 {% else %}
-                                <a href="{% url 'client_login' %}" class="btn btn-primary btn-action">
+                                <a href="{% if hotel %}{% url 'client_login_hotel' hotel.slug %}{% else %}{% url 'client_login' %}{% endif %}" class="btn btn-primary btn-action">
                                     <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
                                 </a>
                                 {% endif %}
@@ -350,15 +353,15 @@
                                     </div>
                                     
                                     <div class="d-grid gap-2">
-                                        <a href="{% url 'client_room_detail' room.id %}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{% if hotel %}{% url 'client_room_detail_hotel' hotel.slug room.id %}{% else %}{% url 'client_room_detail' room.id %}{% endif %}" class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-eye me-2"></i>Ver Detalles
                                         </a>
                                         {% if room.status == 'available' and user.is_authenticated %}
-                                        <a href="{% url 'client_booking_room' room.id %}" class="btn btn-primary btn-sm">
+                                        <a href="{% if hotel %}{% url 'client_booking_room_hotel' hotel.slug room.id %}{% else %}{% url 'client_booking_room' room.id %}{% endif %}" class="btn btn-primary btn-sm">
                                             <i class="fas fa-calendar-plus me-2"></i>Reservar
                                         </a>
                                         {% elif room.status == 'available' and not user.is_authenticated %}
-                                        <a href="{% url 'client_login' %}" class="btn btn-primary btn-sm">
+                                        <a href="{% if hotel %}{% url 'client_login_hotel' hotel.slug %}{% else %}{% url 'client_login' %}{% endif %}" class="btn btn-primary btn-sm">
                                             <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
                                         </a>
                                         {% else %}
@@ -383,7 +386,7 @@
                 No hay habitaciones disponibles con los filtros seleccionados. 
                 Intenta ajustar tus criterios de búsqueda.
             </p>
-            <a href="{% url 'client_rooms' %}" class="btn btn-primary">
+            <a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="btn btn-primary">
                 <i class="fas fa-refresh me-2"></i>Limpiar Filtros
             </a>
         </div>

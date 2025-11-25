@@ -16,14 +16,14 @@
                     Nuestras habitaciones de primera clase te esperan para una experiencia inolvidable.
                 </p>
                 <div class="d-flex gap-3 flex-wrap">
-                    <a href="{% url 'booking_step1' %}" class="btn btn-light btn-lg">
+                    <a href="{% if hotel %}{% url 'client_booking_step1_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="btn btn-light btn-lg">
                         <i class="fas fa-calendar-plus me-2"></i>Hacer Reserva
                     </a>
-                    <a href="{% url 'client_rooms' %}" class="btn btn-outline-light btn-lg">
+                    <a href="{% url 'client_rooms_hotel' hotel.slug %}" class="btn btn-outline-light btn-lg">
                         <i class="fas fa-bed me-2"></i>Ver Habitaciones
                     </a>
                     {% if not user.is_authenticated %}
-                    <a href="{% url 'client_register' %}" class="btn btn-outline-light btn-lg">
+                    <a href="{% url 'client_register_hotel' hotel.slug %}" class="btn btn-outline-light btn-lg">
                         <i class="fas fa-user-plus me-2"></i>Registrarse
                     </a>
                     {% endif %}
@@ -99,7 +99,7 @@
                 <p class="text-muted">Descubre nuestras habitaciones disponibles para tu próxima estadía</p>
             </div>
             <div class="col-lg-4 text-lg-end">
-                <a href="{% url 'client_rooms' %}" class="btn btn-primary">
+                <a href="{% url 'client_rooms_hotel' hotel.slug %}" class="btn btn-primary">
                     <i class="fas fa-eye me-2"></i>Ver Todas
                 </a>
             </div>
@@ -131,15 +131,15 @@
                             </div>
                         </div>
                         <div class="d-grid gap-2">
-                            <a href="{% url 'client_room_detail' room.id %}" class="btn btn-outline-primary">
+                            <a href="{% url 'client_room_detail_hotel' hotel.slug room.id %}" class="btn btn-outline-primary">
                                 <i class="fas fa-eye me-2"></i>Ver Detalles
                             </a>
                             {% if user.is_authenticated %}
-                            <a href="{% url 'client_booking_room' room.id %}" class="btn btn-primary">
+                            <a href="{% if hotel %}{% url 'client_booking_room_hotel' hotel.slug room.id %}{% else %}{% url 'client_booking_room' room.id %}{% endif %}" class="btn btn-primary">
                                 <i class="fas fa-calendar-plus me-2"></i>Reservar
                             </a>
                             {% else %}
-                            <a href="{% url 'client_login' %}" class="btn btn-primary">
+                            <a href="{% url 'client_login_hotel' hotel.slug %}" class="btn btn-primary">
                                 <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión para Reservar
                             </a>
                             {% endif %}
@@ -190,15 +190,15 @@
                             </div>
                         </div>
                         <div class="d-grid gap-2">
-                            <a href="{% url 'client_room_detail' room.id %}" class="btn btn-outline-primary">
+                            <a href="{% url 'client_room_detail_hotel' hotel.slug room.id %}" class="btn btn-outline-primary">
                                 <i class="fas fa-eye me-2"></i>Ver Detalles
                             </a>
                             {% if user.is_authenticated %}
-                            <a href="{% url 'client_booking_room' room.id %}" class="btn btn-primary">
+                            <a href="{% if hotel %}{% url 'client_booking_room_hotel' hotel.slug room.id %}{% else %}{% url 'client_booking_room' room.id %}{% endif %}" class="btn btn-primary">
                                 <i class="fas fa-calendar-plus me-2"></i>Reservar
                             </a>
                             {% else %}
-                            <a href="{% url 'client_login' %}" class="btn btn-primary">
+                            <a href="{% url 'client_login_hotel' hotel.slug %}" class="btn btn-primary">
                                 <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión para Reservar
                             </a>
                             {% endif %}
@@ -289,11 +289,11 @@
                     <a href="{% url 'booking_step1' %}" class="btn btn-light btn-lg">
                         <i class="fas fa-calendar-plus me-2"></i>Hacer Reserva
                     </a>
-                    <a href="{% url 'client_rooms' %}" class="btn btn-outline-light btn-lg">
+                    <a href="{% url 'client_rooms_hotel' hotel.slug %}" class="btn btn-outline-light btn-lg">
                         <i class="fas fa-bed me-2"></i>Explorar Habitaciones
                     </a>
                     {% if not user.is_authenticated %}
-                    <a href="{% url 'client_register' %}" class="btn btn-outline-light btn-lg">
+                    <a href="{% url 'client_register_hotel' hotel.slug %}" class="btn btn-outline-light btn-lg">
                         <i class="fas fa-user-plus me-2"></i>Crear Cuenta
                     </a>
                     {% endif %}

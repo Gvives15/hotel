@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'app.accounts',
     'app.core',
     'app.administration',
     'app.bookings',
@@ -77,7 +78,6 @@ INSTALLED_APPS = [
     'app.clients',
     'app.maintenance',
     'app.rooms',
-    'app.users',
     'corsheaders',
 ]
 
@@ -238,3 +238,4 @@ CORS_ALLOW_CREDENTIALS = True
 
 # IA Webhook (n8n)
 N8N_IA_WEBHOOK_URL = env_config('N8N_IA_WEBHOOK_URL', default='')
+AUTH_USER_MODEL = 'accounts.User'

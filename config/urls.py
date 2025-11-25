@@ -56,16 +56,28 @@ from app.core.views import (
     superadmin_api_dashboard_hotel,
     superadmin_api_ia_analisis,
     superadmin_api_ia_chat,
-    superadmin_api_hotels
+    superadmin_api_hotels,
+    # Vistas slug-based del portal
+    client_index_hotel_view, client_rooms_hotel_view, client_room_detail_hotel_view,
+    client_my_bookings_hotel_view, client_booking_detail_hotel_view,
+    client_cancel_booking_hotel_view, client_profile_hotel_view,
+    client_login_hotel_view, client_register_hotel_view, client_logout_hotel_view,
+    client_booking_hotel_view, booking_step1_hotel_view, booking_step2_hotel_view,
+    booking_step3_hotel_view, booking_step4_hotel_view,
+    # Vistas slug-based del panel
+    panel_dashboard_hotel_view, panel_rooms_hotel_view, panel_bookings_hotel_view,
+    panel_clients_hotel_view, panel_cleaning_hotel_view, panel_maintenance_hotel_view,
+    panel_administration_hotel_view, panel_reports_hotel_view, panel_change_booking_status_hotel_view
 )
-from app.core.views import client_simulate_payment_view, client_booking_pdf_view
+from app.core.views import client_simulate_payment_view, client_booking_pdf_view, health_view
 from app.rooms.views import rooms_view, rooms_api_collection, room_api_detail, export_rooms_csv
 from app.bookings.views import export_bookings_csv
 
 # Importar vistas de reservas
 from app.bookings.views import (
     booking_step1, booking_step2, booking_step3, booking_step4,
-    create_booking_final, booking_detail, my_bookings, cancel_booking
+    create_booking_final, booking_detail, my_bookings, cancel_booking,
+    panel_booking_detail_hotel_view
 )
 
 # Scalar API Reference Implementation
@@ -416,24 +428,39 @@ urlpatterns = [
     path("maintenance/", maintenance_view, name="maintenance"),
     path("administration/", administration_view, name="administration"),
     path("reports/", reports_view, name="reports"),
-    
-    # ============================================================================
-    # RUTAS DEL PORTAL DE CLIENTES
-    # ============================================================================
+   
+    # Portal público (no-slug) - nombres históricos usados en templates
     path("portal/", client_index_view, name="client_index"),
     path("portal/rooms/", client_rooms_view, name="client_rooms"),
     path("portal/rooms/<int:room_id>/", client_room_detail_view, name="client_room_detail"),
-    path("portal/booking/", client_booking_view, name="client_booking"),
-    path("portal/booking/<int:room_id>/", client_booking_view, name="client_booking_room"),
-    path("portal/room-availability/<int:room_id>/", get_room_availability, name="room_availability_api"),
-    path("portal/booking-confirmation/<int:booking_id>/", client_booking_confirmation_view, name="client_booking_confirmation"),
     path("portal/my-bookings/", client_my_bookings_view, name="client_my_bookings"),
     path("portal/my-bookings/<int:booking_id>/", client_booking_detail_view, name="client_booking_detail"),
     path("portal/my-bookings/<int:booking_id>/cancel/", client_cancel_booking_view, name="client_cancel_booking"),
-    path("portal/profile/", client_profile_view, name="client_profile"),
     path("portal/login/", client_login_view, name="client_login"),
     path("portal/register/", client_register_view, name="client_register"),
     path("portal/logout/", client_logout_view, name="client_logout"),
+    path("portal/booking/", client_booking_view, name="client_booking"),
+    path("portal/booking/<int:room_id>/", client_booking_view, name="client_booking_room"),
+    path("portal/booking/confirmation/<int:booking_id>/", client_booking_confirmation_view, name="client_booking_confirmation"),
+    path("portal/profile/", client_profile_view, name="client_profile"),
+
+    # Rutas slug-based del portal por hotel
+    path("h/<slug:hotel_slug>/portal/", client_index_hotel_view, name="client_index_hotel"),
+    path("h/<slug:hotel_slug>/portal/booking/", client_booking_hotel_view, name="client_booking_hotel"),
+    path("h/<slug:hotel_slug>/portal/booking/<int:room_id>/", client_booking_hotel_view, name="client_booking_room_hotel"),
+    path("h/<slug:hotel_slug>/portal/booking/step1/", booking_step1_hotel_view, name="client_booking_step1_hotel"),
+    path("h/<slug:hotel_slug>/portal/booking/step2/", booking_step2_hotel_view, name="client_booking_step2_hotel"),
+    path("h/<slug:hotel_slug>/portal/booking/step3/", booking_step3_hotel_view, name="client_booking_step3_hotel"),
+    path("h/<slug:hotel_slug>/portal/booking/step4/", booking_step4_hotel_view, name="client_booking_step4_hotel"),
+    path("h/<slug:hotel_slug>/portal/rooms/", client_rooms_hotel_view, name="client_rooms_hotel"),
+    path("h/<slug:hotel_slug>/portal/rooms/<int:room_id>/", client_room_detail_hotel_view, name="client_room_detail_hotel"),
+    path("h/<slug:hotel_slug>/portal/my-bookings/", client_my_bookings_hotel_view, name="client_my_bookings_hotel"),
+    path("h/<slug:hotel_slug>/portal/my-bookings/<int:booking_id>/", client_booking_detail_hotel_view, name="client_booking_detail_hotel"),
+    path("h/<slug:hotel_slug>/portal/my-bookings/<int:booking_id>/cancel/", client_cancel_booking_hotel_view, name="client_cancel_booking_hotel"),
+    path("h/<slug:hotel_slug>/portal/profile/", client_profile_hotel_view, name="client_profile_hotel"),
+    path("h/<slug:hotel_slug>/portal/login/", client_login_hotel_view, name="client_login_hotel"),
+    path("h/<slug:hotel_slug>/portal/register/", client_register_hotel_view, name="client_register_hotel"),
+    path("h/<slug:hotel_slug>/portal/logout/", client_logout_hotel_view, name="client_logout_hotel"),
     # =========================================================================
     # RUTAS PÚBLICAS POR HOTEL (SaaS MVP)
     # =========================================================================
@@ -464,17 +491,18 @@ urlpatterns = [
 
     # Admin booking detail (backend)
     path('admin/bookings/<int:booking_id>/', booking_detail, name='booking_detail'),
-
-    # Panel (alias de vistas existentes)
-    path("panel/login/", login_view, name="panel_login"),
-    path("panel/", dashboard_view, name="panel_dashboard"),
-    path("panel/reservas/", bookings_view, name="panel_bookings"),
-    path("panel/reservas/<int:booking_id>/", booking_detail, name="panel_booking_detail"),
-    path("panel/reservas/<int:booking_id>/cambiar-estado/", panel_change_booking_status, name="panel_change_booking_status"),
-    path("panel/habitaciones/", rooms_view, name="panel_rooms"),
-    path("panel/clientes/", clients_view, name="panel_clients"),
-
-    # Superadmin
+    # Panel slug-based
+    path("panel/<slug:hotel_slug>/", panel_dashboard_hotel_view, name="panel_dashboard_hotel"),
+    path("panel/<slug:hotel_slug>/reservas/", panel_bookings_hotel_view, name="panel_bookings_hotel"),
+    path("panel/<slug:hotel_slug>/reservas/<int:booking_id>/", panel_booking_detail_hotel_view, name="panel_booking_detail_hotel"),
+    path("panel/<slug:hotel_slug>/reservas/<int:booking_id>/cambiar-estado/", panel_change_booking_status_hotel_view, name="panel_change_booking_status_hotel"),
+    path("panel/<slug:hotel_slug>/habitaciones/", panel_rooms_hotel_view, name="panel_rooms_hotel"),
+    path("panel/<slug:hotel_slug>/clientes/", panel_clients_hotel_view, name="panel_clients_hotel"),
+    path("panel/<slug:hotel_slug>/cleaning/", panel_cleaning_hotel_view, name="panel_cleaning_hotel"),
+    path("panel/<slug:hotel_slug>/maintenance/", panel_maintenance_hotel_view, name="panel_maintenance_hotel"),
+    path("panel/<slug:hotel_slug>/administration/", panel_administration_hotel_view, name="panel_administration_hotel"),
+    path("panel/<slug:hotel_slug>/reports/", panel_reports_hotel_view, name="panel_reports_hotel"),
+    # Superadmin web
     path("superadmin/", superadmin_dashboard_view, name="superadmin_dashboard"),
     path("superadmin/hoteles/", superadmin_hotels_list_view, name="superadmin_hotels"),
     path("superadmin/hoteles/<int:hotel_id>/", superadmin_hotel_detail_view, name="superadmin_hotel_detail"),
@@ -489,4 +517,5 @@ urlpatterns = [
     path("superadmin/api/ia/analisis/", superadmin_api_ia_analisis, name="superadmin_api_ia_analisis"),
     path("superadmin/api/ia/chat/", superadmin_api_ia_chat, name="superadmin_api_ia_chat"),
     path("superadmin/api/hotels", superadmin_api_hotels, name="superadmin_api_hotels"),
+    path("health/", health_view, name="health"),
 ]

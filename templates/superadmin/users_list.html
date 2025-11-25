@@ -8,9 +8,27 @@
   </div>
 </section>
 <div class="container my-4">
+  <div class="client-card p-3 mb-3">
+    <form class="row g-3" method="get">
+      <div class="col-md-5">
+        <label class="form-label">Hotel</label>
+        <select name="hotel" class="form-select">
+          <option value="">Todos</option>
+          {% for h in hotels %}
+            <option value="{{ h.id }}" {% if hotel_selected and h.id == hotel_selected.id %}selected{% endif %}>{{ h.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Buscar usuario</label>
+        <input class="form-control" name="search" value="{{ search }}" placeholder="usuario, nombre">
+      </div>
+      <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100">Aplicar</button></div>
+    </form>
+  </div>
   <div class="table-responsive">
     <table class="table align-middle">
-      <thead><tr><th>Usuario</th><th>Nombre</th><th>Roles</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Usuario</th><th>Nombre</th><th>Roles</th><th>Hoteles</th><th>Acciones</th></tr></thead>
       <tbody>
       {% for u in users %}
         <tr>
@@ -18,12 +36,26 @@
           <td>{{ u.get_full_name }}</td>
           <td>{% for g in u.groups.all %}<span class="badge bg-secondary me-1">{{ g.name }}</span>{% endfor %}</td>
           <td>
+            {% if u.hotel_links %}
+              {% for l in u.hotel_links %}
+                <span class="badge bg-info text-dark me-1">{{ l.hotel_name }} • {{ l.role }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
             <form method="post" class="d-flex gap-2">
               {% csrf_token %}
               <input type="hidden" name="user_id" value="{{ u.id }}">
+              {% if hotel_selected %}<input type="hidden" name="hotel" value="{{ hotel_selected.id }}">{% endif %}
               <select name="role" class="form-select form-select-sm" style="max-width:180px">
                 <option value="hotel_admin">hotel_admin</option>
-                <option value="staff">staff</option>
+                <option value="hotel_staff">hotel_staff</option>
+                {% if hotel_selected %}
+                <option value="remove_hotel_admin">remove_hotel_admin</option>
+                <option value="remove_hotel_staff">remove_hotel_staff</option>
+                {% endif %}
               </select>
               <button class="btn btn-primary btn-sm">Asignar</button>
             </form>
@@ -33,5 +65,46 @@
       </tbody>
     </table>
   </div>
+  <div class="page-section">
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="client-card chart-card">
+          <h6 class="mb-3">Roles por hotel</h6>
+          <canvas id="chart-roles"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="client-card">
+          <div class="room-content">
+            <h6 class="mb-3">Detalle por hotel</h6>
+            {% for hr in hotels_roles %}
+              <div class="mb-2"><strong>{{ hr.hotel.name }}</strong> • Admins: {{ hr.admins|length }} • Staff: {{ hr.staff|length }}</div>
+              {% if hotel_selected and hr.hotel.id == hotel_selected.id %}
+                <div class="small text-muted">Admins:</div>
+                {% for a in hr.admins %}<div class="small">• {{ a.user.username }}</div>{% endfor %}
+                <div class="small text-muted mt-2">Staff:</div>
+                {% for s in hr.staff %}<div class="small">• {{ s.user.username }}</div>{% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const labels = {{ roles_chart_labels|safe }};
+const admins = {{ roles_chart_admins|safe }};
+const staff = {{ roles_chart_staff|safe }};
+new Chart(document.getElementById('chart-roles'),{
+  type:'bar',
+  data:{labels:labels,datasets:[
+    {label:'Admins',data:admins,backgroundColor:'#3b82f6'},
+    {label:'Staff',data:staff,backgroundColor:'#10b981'}
+  ]},
+  options:{responsive:true,plugins:{legend:{position:'top'}},scales:{x:{ticks:{autoSkip:false}}}}
+});
+</script>
 {% endblock %}

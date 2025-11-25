@@ -10,10 +10,10 @@
             <div class="col-lg-8 hero-content">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb text-white">
-                        <li class="breadcrumb-item"><a href="{% url 'client_index' %}" class="text-white">Inicio</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'client_rooms' %}" class="text-white">Habitaciones</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="text-white">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="text-white">Habitaciones</a></li>
                         {% if room %}
-                        <li class="breadcrumb-item"><a href="{% url 'client_room_detail' room.id %}" class="text-white">{{ room.get_type_display }}</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_room_detail_hotel' hotel.slug room.id %}{% else %}{% url 'client_room_detail' room.id %}{% endif %}" class="text-white">{{ room.get_type_display }}</a></li>
                         {% endif %}
                         <li class="breadcrumb-item active" aria-current="page">Reservar</li>
                     </ol>

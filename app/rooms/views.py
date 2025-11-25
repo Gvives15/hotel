@@ -8,12 +8,25 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 import json
 from .models import Room, RoomImage
+from app.administration.models import Hotel
 from .forms import RoomForm
 
 @login_required
 def rooms_view(request):
     """Vista principal para la gestión de habitaciones"""
+    hotel_param = request.GET.get('hotel')
+    hotel = None
+    if hotel_param:
+        try:
+            hotel = Hotel.objects.get(id=int(hotel_param))
+        except Exception:
+            try:
+                hotel = Hotel.objects.get(slug=str(hotel_param))
+            except Hotel.DoesNotExist:
+                hotel = None
     rooms = Room.objects.all().order_by('number')
+    if hotel:
+        rooms = rooms.filter(hotel=hotel)
     
     # Filtros
     status_filter = request.GET.get('status')
@@ -135,7 +148,19 @@ def delete_room(request, room_id):
 @require_http_methods(["GET"])
 def rooms_api(request):
     """API para obtener habitaciones en formato JSON"""
+    hotel_param = request.GET.get('hotel')
+    hotel = None
+    if hotel_param:
+        try:
+            hotel = Hotel.objects.get(id=int(hotel_param))
+        except Exception:
+            try:
+                hotel = Hotel.objects.get(slug=str(hotel_param))
+            except Hotel.DoesNotExist:
+                hotel = None
     rooms = Room.objects.all().order_by('number')
+    if hotel:
+        rooms = rooms.filter(hotel=hotel)
     
     # Aplicar filtros
     status_filter = request.GET.get('status')
@@ -179,14 +204,29 @@ def create_room_api(request):
     """API para crear una habitación"""
     try:
         data = json.loads(request.body)
+        hotel_param = request.GET.get('hotel') or data.get('hotel') or data.get('hotel_id') or data.get('hotel_slug')
+        hotel = None
+        if hotel_param:
+            try:
+                hotel = Hotel.objects.get(id=int(hotel_param))
+            except Exception:
+                try:
+                    hotel = Hotel.objects.get(slug=str(hotel_param))
+                except Hotel.DoesNotExist:
+                    hotel = None
+        if hotel is None:
+            hotel = Hotel.objects.order_by('id').first()
+        if hotel is None:
+            return JsonResponse({'error': 'Hotel no encontrado para asociar la habitación'}, status=400)
         
         # Validar que el número de habitación no exista
-        if Room.objects.filter(number=data.get('number')).exists():
+        if Room.objects.filter(hotel=hotel, number=data.get('number')).exists():
             return JsonResponse({
                 'error': 'Ya existe una habitación con este número'
             }, status=400)
         
         room = Room.objects.create(
+            hotel=hotel,
             number=data.get('number'),
             type=data.get('type'),
             capacity=data.get('capacity'),

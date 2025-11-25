@@ -1,7 +1,6 @@
 from .models import ActionLog
-from django.contrib.auth.models import User
 
-def log_user_action(user, action, description="", request=None):
+def log_user_action(user, action, description="", request=None, hotel=None):
     """
     Función utilitaria para registrar acciones del usuario
     
@@ -31,5 +30,6 @@ def log_user_action(user, action, description="", request=None):
         action=action,
         description=description,
         ip_address=ip_address,
-        user_agent=user_agent
+        user_agent=user_agent,
+        hotel=hotel
     )

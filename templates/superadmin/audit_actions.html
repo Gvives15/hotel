@@ -7,28 +7,76 @@
   </div>
 </section>
 <div class="container my-4">
-  <div class="client-card p-3">
-    <form class="row g-3" method="get">
-      <div class="col-md-4"><input class="form-control" name="hotel" placeholder="ID Hotel"></div>
-      <div class="col-md-3"><input class="form-control" type="date" name="desde" placeholder="Desde"></div>
-      <div class="col-md-3"><input class="form-control" type="date" name="hasta" placeholder="Hasta"></div>
-      <div class="col-md-2"><button class="btn btn-primary w-100">Filtrar</button></div>
-    </form>
+  <div class="page-section">
+    <div class="row g-3">
+      <div class="col-lg-4">
+        <div class="client-card chart-card">
+          <h6 class="mb-3">Distribución de acciones</h6>
+          <canvas id="chart-actions"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="client-card chart-card">
+          <h6 class="mb-3">Acciones por día</h6>
+          <canvas id="chart-daily-actions"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="table-responsive mt-3">
-    <table class="table table-hover align-middle">
-      <thead><tr><th>Usuario</th><th>Acción</th><th>Descripción</th><th>Fecha</th></tr></thead>
-      <tbody>
-      {% for log in logs %}
-        <tr>
-          <td>{{ log.user.username }}</td>
-          <td>{{ log.get_action_display }}</td>
-          <td>{{ log.description }}</td>
-          <td>{{ log.created_at }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+  <div class="page-section">
+    <div class="client-card chart-card">
+      <h6 class="mb-3">Top usuarios por acciones</h6>
+      <canvas id="chart-top-users"></canvas>
+    </div>
+  </div>
+  <div class="page-section">
+    <div class="client-card chart-card">
+      <h6 class="mb-3">Acciones por hotel</h6>
+      <canvas id="chart-hotels"></canvas>
+    </div>
+  </div>
+  <div class="page-section">
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="client-card chart-card">
+          <h6 class="mb-3">Reservas por hotel</h6>
+          <canvas id="chart-bookings-hotel"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="client-card chart-card">
+          <h6 class="mb-3">Emails por hotel</h6>
+          <canvas id="chart-emails-hotel"></canvas>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const dist = {{ distribution|safe }};
+const labels1 = dist.map(d=>d.action);
+const values1 = dist.map(d=>d.total);
+new Chart(document.getElementById('chart-actions'),{type:'doughnut',data:{labels:labels1,datasets:[{data:values1,backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#f43f5e']}]}});
+
+const daily = {{ daily_series|safe }};
+const uniqueDates = [...new Set(daily.map(d=>d.date))];
+const actionTypes = [...new Set(daily.map(d=>d.action))];
+const datasets = actionTypes.map((a,i)=>({label:a,data:uniqueDates.map(dt=>{const r=daily.find(x=>x.date===dt && x.action===a);return r?r.total:0}),borderColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#f43f5e'][i%6]}));
+new Chart(document.getElementById('chart-daily-actions'),{type:'line',data:{labels:uniqueDates,datasets:datasets}});
+
+const topUsers = {{ top_users|safe }};
+new Chart(document.getElementById('chart-top-users'),{type:'bar',data:{labels:topUsers.map(t=>t["user__username"]),datasets:[{label:'Acciones',data:topUsers.map(t=>t.total),backgroundColor:'#3b82f6'}]}});
+
+const hotelsLabels = {{ hotels_labels|safe }};
+const hotelsTotals = {{ hotels_totals|safe }};
+new Chart(document.getElementById('chart-hotels'),{type:'bar',data:{labels:hotelsLabels,datasets:[{label:'Total acciones',data:hotelsTotals,backgroundColor:'#8b5cf6'}]}});
+
+const bookingsPerHotel = {{ bookings_per_hotel|safe }};
+new Chart(document.getElementById('chart-bookings-hotel'),{type:'bar',data:{labels:bookingsPerHotel.map(b=>b['hotel__name']||'Sin hotel'),datasets:[{label:'Reservas',data:bookingsPerHotel.map(b=>b.total),backgroundColor:'#10b981'}]}});
+
+const emailsPerHotel = {{ emails_per_hotel|safe }};
+new Chart(document.getElementById('chart-emails-hotel'),{type:'bar',data:{labels:emailsPerHotel.map(e=>e['booking__hotel__name']||'Sin hotel'),datasets:[{label:'Emails',data:emailsPerHotel.map(e=>e.total),backgroundColor:'#f59e0b'}]}});
+</script>
 {% endblock %}

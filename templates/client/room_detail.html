@@ -10,8 +10,8 @@
             <div class="col-lg-8 hero-content">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb text-white">
-                        <li class="breadcrumb-item"><a href="{% url 'client_index' %}" class="text-white">Inicio</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'client_rooms' %}" class="text-white">Habitaciones</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_index_hotel' hotel.slug %}{% else %}{% url 'booking_step1' %}{% endif %}" class="text-white">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="text-white">Habitaciones</a></li>
                         <li class="breadcrumb-item active" aria-current="page">{{ room.get_type_display }}</li>
                     </ol>
                 </nav>
@@ -228,7 +228,7 @@
                             
                             {% if user.is_authenticated %}
                             <div class="d-grid gap-3">
-                                <a href="{% url 'client_booking_room' room.id %}" class="btn btn-primary btn-lg">
+                                <a href="{% if hotel %}{% url 'client_booking_room_hotel' hotel.slug room.id %}{% else %}{% url 'client_booking_room' room.id %}{% endif %}" class="btn btn-primary btn-lg">
                                     <i class="fas fa-calendar-plus me-2"></i>Reservar Ahora
                                 </a>
                                 <a href="tel:+1234567890" class="btn btn-outline-primary">
@@ -237,10 +237,10 @@
                             </div>
                             {% else %}
                             <div class="d-grid gap-3">
-                                <a href="{% url 'client_login' %}" class="btn btn-primary btn-lg">
+                                <a href="{% if hotel %}{% url 'client_login_hotel' hotel.slug %}{% else %}{% url 'client_login' %}{% endif %}" class="btn btn-primary btn-lg">
                                     <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión para Reservar
                                 </a>
-                                <a href="{% url 'client_register' %}" class="btn btn-outline-primary">
+                                <a href="{% if hotel %}{% url 'client_register_hotel' hotel.slug %}{% else %}{% url 'client_register' %}{% endif %}" class="btn btn-outline-primary">
                                     <i class="fas fa-user-plus me-2"></i>Crear Cuenta
                                 </a>
                             </div>
@@ -251,7 +251,7 @@
                             Esta habitación no está disponible actualmente
                         </div>
                         <div class="d-grid">
-                            <a href="{% url 'client_rooms' %}" class="btn btn-primary">
+                            <a href="{% if hotel %}{% url 'client_rooms_hotel' hotel.slug %}{% else %}{% url 'client_rooms' %}{% endif %}" class="btn btn-primary">
                                 <i class="fas fa-search me-2"></i>Ver Otras Habitaciones
                             </a>
                         </div>
