@@ -1,0 +1,43 @@
+{% extends 'nuevo/base.html' %}
+{% block title %}Selecciona fechas · {{ hotel.name|default:"Hotel" }}{% endblock %}
+
+{% block content %}
+<section class="container" style="padding: var(--spacing-5) var(--spacing-3);">
+  <div class="steps">
+    <span class="step step--active">1. Fechas</span>
+    <span class="step">2. Habitaciones</span>
+    <span class="step">3. Datos</span>
+    <span class="step">4. Confirmación</span>
+  </div>
+  <div class="search-card" aria-labelledby="titulo-busqueda">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:var(--spacing-2); flex-wrap:wrap;">
+      <div>
+        <p class="badge badge--neutral">Planifica tu estadía</p>
+        <h1 id="titulo-busqueda" style="margin:0;">Elige fechas y número de huéspedes</h1>
+        <p class="card__meta">Usa el formulario para consultar disponibilidad en tiempo real.</p>
+      </div>
+    </div>
+    <form method="post" action="{% url 'hotel_reserve_search' hotel.slug %}" style="margin-top: var(--spacing-4);">
+      {% csrf_token %}
+      <div class="grid grid--cols-3">
+        <div class="field">
+          <label for="check_in">Check-in</label>
+          <input id="check_in" name="check_in" type="date" class="input" value="{{ check_in }}" required>
+        </div>
+        <div class="field">
+          <label for="check_out">Check-out</label>
+          <input id="check_out" name="check_out" type="date" class="input" value="{{ check_out }}" required>
+        </div>
+        <div class="field">
+          <label for="guests">Huéspedes</label>
+          <input id="guests" name="guests" type="number" min="1" class="input" value="{{ guests|default:2 }}" required>
+        </div>
+      </div>
+      <div style="margin-top: var(--spacing-3); display:flex; justify-content:flex-end; gap:var(--spacing-2);">
+        <button type="reset" class="btn btn--secondary"><i class="fa-solid fa-rotate-left"></i> Limpiar</button>
+        <button type="submit" class="btn btn--primary"><i class="fa-solid fa-magnifying-glass"></i> Buscar disponibilidad</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

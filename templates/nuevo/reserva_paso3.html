@@ -1,0 +1,114 @@
+{% extends 'nuevo/base.html' %}
+{% block title %}Datos del huésped · {{ hotel.name|default:"Hotel" }}{% endblock %}
+
+{% block content %}
+<section class="container" style="padding: var(--spacing-5) var(--spacing-3);">
+  <div class="steps">
+    <span class="step">1. Fechas</span>
+    <span class="step">2. Habitaciones</span>
+    <span class="step step--active">3. Datos</span>
+    <span class="step">4. Confirmación</span>
+  </div>
+
+  <div class="grid" style="grid-template-columns: 2fr 1fr; gap: var(--spacing-4);">
+    <section class="search-card">
+      <p class="badge badge--neutral">Información del huésped</p>
+      <h1 style="margin-top:0;">Completa tus datos</h1>
+      <form method="post" action="{% url 'hotel_confirm_reservation' hotel_slug=hotel.slug %}" onsubmit="return validateBookingForm(this);">
+        {% csrf_token %}
+        <input type="hidden" name="room" value="{{ room.id }}">
+        <input type="hidden" name="check_in" id="check_in" value="{{ check_in }}">
+        <input type="hidden" name="check_out" id="check_out" value="{{ check_out }}">
+        <input type="hidden" name="guests_count" id="guests_count" value="{{ guests }}">
+
+        <div class="grid grid--cols-3">
+          <div class="field">
+            <label for="guest_name">Nombre completo</label>
+            <input id="guest_name" name="guest_name" type="text" class="input" required>
+          </div>
+          <div class="field">
+            <label for="contact_email">Correo</label>
+            <input id="contact_email" name="contact_email" type="email" class="input" value="{{ user.email }}" required>
+          </div>
+          <div class="field">
+            <label for="contact_phone">Teléfono</label>
+            <input id="contact_phone" name="contact_phone" type="tel" class="input" placeholder="+54 11 0000 0000">
+          </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: var(--spacing-3);">
+          <div class="field">
+            <label for="document">Documento</label>
+            <input id="document" name="document" type="text" class="input" placeholder="DNI / Pasaporte">
+          </div>
+          <div class="field">
+            <label for="special_requests">Solicitudes especiales</label>
+            <textarea id="special_requests" name="special_requests" class="textarea" rows="3" placeholder="Ej: cuna, piso alto"></textarea>
+          </div>
+        </div>
+
+        <div style="margin: var(--spacing-3) 0;">
+          <label class="step" style="background:#fff; border:1px solid var(--color-border);">
+            <input type="checkbox" id="terms" required style="accent-color: var(--color-primary); margin-right: 0.5rem;"> Acepto términos y política de privacidad
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:var(--spacing-2);">
+          <a href="{% url 'booking_step1' %}" class="btn btn--secondary">Volver</a>
+          <button type="submit" class="btn btn--primary"><i class="fa-solid fa-shield-heart"></i> Confirmar datos</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="summary">
+      <div style="display:flex; gap:var(--spacing-3);">
+        <img src="{{ room.main_image|default:room.image }}" alt="{{ room.get_type_display }}" style="width:110px; height:90px; object-fit:cover; border-radius:var(--radius-md);">
+        <div>
+          <p class="badge badge--success">{{ room.get_type_display }}</p>
+          <h3 style="margin:0;">Hab. {{ room.number }}</h3>
+          <p class="card__meta">Capacidad {{ room.capacity }} · Piso {{ room.floor }}</p>
+        </div>
+      </div>
+      <hr>
+      <div class="summary__row"><span>Check-in</span><strong>{{ check_in }}</strong></div>
+      <div class="summary__row"><span>Check-out</span><strong>{{ check_out }}</strong></div>
+      <div class="summary__row"><span>Huéspedes</span><strong>{{ guests }}</strong></div>
+      <div class="summary__row"><span>Precio x noche</span><strong>${{ room.price }}</strong></div>
+      <div class="summary__row"><span>Noches</span><strong id="nights_count">{{ nights|default:1 }}</strong></div>
+      <div class="summary__row"><span>Subtotal</span><strong id="total_price">${{ room.price }}</strong></div>
+      <hr>
+      <div class="summary__total">Total estimado <span id="total_display">${{ room.price }}</span></div>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function validateBookingForm(form) {
+    const requiredFields = form.querySelectorAll('[required]');
+    for (const field of requiredFields) {
+      if (!field.value) {
+        field.focus();
+        return false;
+      }
+    }
+    return true;
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const checkIn = document.getElementById('check_in');
+    const checkOut = document.getElementById('check_out');
+    if (checkIn && checkOut) {
+      const inDate = new Date(checkIn.value);
+      const outDate = new Date(checkOut.value);
+      if (outDate > inDate) {
+        const nights = Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24));
+        const price = Number({{ room.price|default:0 }});
+        document.getElementById('nights_count').textContent = nights;
+        document.getElementById('total_price').textContent = `$${(nights * price).toFixed(2)}`;
+        document.getElementById('total_display').textContent = `$${(nights * price).toFixed(2)}`;
+      }
+    }
+  });
+</script>
+{% endblock %}

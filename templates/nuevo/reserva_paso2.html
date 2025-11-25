@@ -1,0 +1,60 @@
+{% extends 'nuevo/base.html' %}
+{% block title %}Elige habitación · {{ hotel.name|default:"Hotel" }}{% endblock %}
+
+{% block content %}
+<section class="container" style="padding: var(--spacing-5) var(--spacing-3);">
+  <div class="steps">
+    <span class="step">1. Fechas</span>
+    <span class="step step--active">2. Habitaciones</span>
+    <span class="step">3. Datos</span>
+    <span class="step">4. Confirmación</span>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:var(--spacing-3); flex-wrap:wrap; margin-bottom: var(--spacing-3);">
+    <div>
+      <p class="badge badge--neutral">{{ check_in }} → {{ check_out }} · {{ guests }} huésped(es)</p>
+      <h1 style="margin:0;">Habitaciones disponibles</h1>
+      <p class="card__meta">Elige una opción para continuar con los datos del huésped.</p>
+    </div>
+    <a href="{% url 'booking_step1' %}" class="btn btn--secondary"><i class="fa-solid fa-pen"></i> Editar fechas</a>
+  </div>
+
+  <form method="post" action="{% url 'hotel_confirm_reservation' hotel_slug=hotel.slug %}">
+    {% csrf_token %}
+    <input type="hidden" name="check_in" value="{{ check_in }}">
+    <input type="hidden" name="check_out" value="{{ check_out }}">
+    <input type="hidden" name="guests" value="{{ guests }}">
+
+    <div class="grid grid--cols-3">
+      {% for r in rooms %}
+      <article class="card">
+        <div class="card__media">
+          <img src="{{ r.main_image|default:r.image }}" alt="Habitación {{ r.number }}">
+          <span class="badge badge--success" style="position:absolute; top:12px; right:12px;">Disponible</span>
+        </div>
+        <div class="card__body">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:var(--spacing-2);">
+            <div>
+              <h3 class="card__title">Hab. {{ r.number }} · {{ r.get_type_display }}</h3>
+              <p class="card__meta">Capacidad {{ r.capacity }} · Piso {{ r.floor }}</p>
+            </div>
+            <div class="price"><span>$</span>{{ r.price }}<small>/noche</small></div>
+          </div>
+          <p class="card__meta">{{ r.description|truncatewords:20 }}</p>
+          <label class="btn btn--secondary" style="justify-content:space-between;">
+            <span>Seleccionar esta habitación</span>
+            <input type="radio" name="room_id" value="{{ r.id }}" required style="accent-color: var(--color-primary);">
+          </label>
+        </div>
+      </article>
+      {% empty %}
+      <div class="alert">No hay habitaciones disponibles para las fechas seleccionadas.</div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top: var(--spacing-4); display:flex; justify-content:flex-end;">
+      <button type="submit" class="btn btn--primary"><i class="fa-solid fa-arrow-right"></i> Continuar</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
