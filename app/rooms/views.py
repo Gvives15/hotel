@@ -60,7 +60,8 @@ def rooms_view(request):
             'type': type_filter,
             'floor': floor_filter,
             'search': search,
-        }
+        },
+        'hotel': hotel,
     }
     
     return render(request, 'rooms.html', context)
@@ -269,7 +270,7 @@ def update_room_api(request, room_id):
         data = json.loads(request.body)
         
         # Validar que el número de habitación no exista en otra habitación
-        if Room.objects.filter(number=data.get('number')).exclude(id=room_id).exists():
+        if Room.objects.filter(hotel=room.hotel, number=data.get('number')).exclude(id=room_id).exists():
             return JsonResponse({
                 'error': 'Ya existe otra habitación con este número'
             }, status=400)
@@ -313,7 +314,8 @@ def delete_room_api(request, room_id):
         room = get_object_or_404(Room, id=room_id)
         
         # Verificar que no tenga reservas activas
-        if hasattr(room, 'bookings') and room.bookings.filter(status__in=['confirmed', 'checked_in']).exists():
+        from app.bookings.models import Booking
+        if Booking.objects.filter(room=room, status__in=['pending', 'confirmed']).exists():
             return JsonResponse({
                 'error': 'No se puede eliminar una habitación con reservas activas'
             }, status=400)
@@ -428,3 +430,32 @@ def export_rooms_csv(request):
         ])
 
     return response
+
+@login_required
+@require_http_methods(["GET"])
+def room_detail_api(request, room_id):
+    """API: Detalle de habitación para el panel (sin redirección)"""
+    room = get_object_or_404(Room, id=room_id)
+    images = RoomImage.objects.filter(room=room).order_by('-is_main', 'order', 'id')
+    data = {
+        'id': room.id,
+        'number': room.number,
+        'type': room.type,
+        'type_label': room.get_type_display() if hasattr(room, 'get_type_display') else room.type,
+        'capacity': room.capacity,
+        'floor': room.floor,
+        'price': float(room.price) if room.price is not None else 0,
+        'status': room.status,
+        'status_label': room.get_status_display() if hasattr(room, 'get_status_display') else room.status,
+        'description': room.description or '',
+        'active': room.active,
+        'images': [
+            {
+                'url': (img.image.url if getattr(img, 'image', None) else ''),
+                'alt': img.alt_text or '',
+                'is_main': img.is_main,
+            }
+            for img in images
+        ],
+    }
+    return JsonResponse(data)

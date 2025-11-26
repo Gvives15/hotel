@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'nuevo/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'diseño-bocking/styles.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -23,7 +23,15 @@
         {% endif %}
         <span>{{ hotel.name|default:"Hotel" }}</span>
       </div>
-      <nav class="header__nav" aria-label="Navegación principal">
+      
+      <!-- Mobile menu button -->
+      <button class="header__menu-toggle" id="menu-toggle" aria-label="Abrir menú" aria-expanded="false">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      
+      <nav class="header__nav" id="main-nav" aria-label="Navegación principal">
         <a href="{% url 'booking_step1' %}"><i class="fa-solid fa-calendar-check"></i> Reservar</a>
         <a href="{% url 'client_rooms_hotel' hotel.slug %}"><i class="fa-solid fa-bed"></i> Habitaciones</a>
         <a href="{% url 'client_my_bookings_hotel' hotel.slug %}"><i class="fa-solid fa-clipboard-list"></i> Mis reservas</a>
@@ -64,5 +72,35 @@
   </footer>
 
   {% block extra_js %}{% endblock %}
+  
+  <script>
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menu-toggle');
+    const mainNav = document.getElementById('main-nav');
+    
+    menuToggle.addEventListener('click', () => {
+      const isOpen = mainNav.classList.toggle('is-open');
+      menuToggle.setAttribute('aria-expanded', isOpen);
+      menuToggle.classList.toggle('is-active');
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!menuToggle.contains(e.target) && !mainNav.contains(e.target)) {
+        mainNav.classList.remove('is-open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        menuToggle.classList.remove('is-active');
+      }
+    });
+    
+    // Close menu on window resize if above mobile breakpoint
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        mainNav.classList.remove('is-open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        menuToggle.classList.remove('is-active');
+      }
+    });
+  </script>
 </body>
 </html>

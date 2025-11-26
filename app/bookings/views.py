@@ -385,13 +385,18 @@ def cancel_booking(request, booking_id):
 @require_http_methods(["GET"])
 def bookings_api(request):
     """API: Listar reservas con filtros"""
-    qs = Booking.objects.select_related('client', 'room').all().order_by('-created_at')
-    hotel_id = request.GET.get('hotel')
-    if hotel_id:
+    qs = Booking.objects.select_related('client', 'room', 'hotel').all().order_by('-created_at')
+    hotel_param = request.GET.get('hotel')
+    if hotel_param:
         try:
-            qs = qs.filter(hotel_id=int(hotel_id))
+            qs = qs.filter(hotel_id=int(hotel_param))
         except Exception:
-            pass
+            from app.administration.models import Hotel
+            try:
+                hotel = Hotel.objects.get(slug=str(hotel_param))
+                qs = qs.filter(hotel=hotel)
+            except Hotel.DoesNotExist:
+                qs = qs.none()
 
     status = request.GET.get('status')
     payment = request.GET.get('payment')
@@ -668,7 +673,18 @@ def export_bookings_csv(request):
         'Noches', 'Total', 'Estado', 'Pago', 'Creado'
     ])
 
-    qs = Booking.objects.select_related('client', 'room').all().order_by('-created_at')
+    qs = Booking.objects.select_related('client', 'room', 'hotel').all().order_by('-created_at')
+    hotel_param = request.GET.get('hotel')
+    if hotel_param:
+        try:
+            qs = qs.filter(hotel_id=int(hotel_param))
+        except Exception:
+            from app.administration.models import Hotel
+            try:
+                hotel = Hotel.objects.get(slug=str(hotel_param))
+                qs = qs.filter(hotel=hotel)
+            except Hotel.DoesNotExist:
+                qs = qs.none()
 
     status = request.GET.get('status')
     payment = request.GET.get('payment')

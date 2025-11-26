@@ -80,7 +80,15 @@
                     <!-- Header -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h1 class="h3 mb-0">Gestión de Habitaciones</h1>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="btn-group me-2" role="group" aria-label="Cambiar vista">
+                                <button type="button" class="btn btn-outline-primary active" id="viewTableBtn" onclick="setAdminView('table')">
+                                    <i class="fas fa-table me-1"></i> Tabla
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="viewCardsBtn" onclick="setAdminView('cards')">
+                                    <i class="fas fa-th-large me-1"></i> Tarjetas
+                                </button>
+                            </div>
                             <button type="button" class="btn btn-outline-secondary" id="exportCsvBtn">
                                 <i class="fas fa-file-csv"></i> Exportar CSV
                             </button>
@@ -125,7 +133,7 @@
                     </div>
 
                     <!-- Tabla de Habitaciones -->
-                    <div class="card">
+                    <div class="card" id="roomsTableCard">
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-hover" id="roomsTable">
@@ -144,6 +152,15 @@
                                         <!-- Los datos se cargarán dinámicamente -->
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjetas de Habitaciones -->
+                    <div class="card d-none" id="roomsCardsCard">
+                        <div class="card-body">
+                            <div class="row g-3" id="roomsCardsGrid">
+                                <!-- Tarjetas renderizadas por JS -->
                             </div>
                         </div>
                     </div>
@@ -263,6 +280,7 @@
 <script>
 // Variables globales
 let rooms = [];
+const HOTEL_PARAM = '{{ hotel.slug|default:"" }}';
 let editingRoomId = null;
 
 // Cargar habitaciones al inicializar la página
@@ -291,7 +309,8 @@ function setupEventListeners() {
 // Cargar habitaciones desde el servidor
 async function loadRooms() {
     try {
-        const response = await fetch('/api/rooms/');
+        const url = HOTEL_PARAM ? `/api/rooms/?hotel=${encodeURIComponent(HOTEL_PARAM)}` : '/api/rooms/';
+        const response = await fetch(url);
         if (response.ok) {
             rooms = await response.json();
             renderRooms(rooms);
@@ -335,6 +354,133 @@ function renderRooms(roomsToRender) {
         `;
         tbody.appendChild(row);
     });
+}
+
+// Renderizar tarjetas estilo portal con acciones de gestión
+function renderRoomsCards(roomsToRender) {
+    const grid = document.getElementById('roomsCardsGrid');
+    grid.innerHTML = '';
+    roomsToRender.forEach(room => {
+        const col = document.createElement('div');
+        col.className = 'col-lg-4 col-md-6';
+        const statusBadge = {
+            'available': '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Disponible</span>',
+            'occupied': '<span class="badge bg-danger"><i class="fas fa-user-check me-1"></i>Ocupada</span>',
+            'cleaning': '<span class="badge bg-warning"><i class="fas fa-broom me-1"></i>Limpieza</span>',
+            'maintenance': '<span class="badge bg-info"><i class="fas fa-tools me-1"></i>Mantenimiento</span>',
+            'reserved': '<span class="badge bg-primary"><i class="fas fa-calendar-check me-1"></i>Reservada</span>'
+        }[room.status] || '<span class="badge bg-secondary">Desconocido</span>';
+
+        col.innerHTML = `
+            <div class="client-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="card-title mb-1">Hab. ${room.number}</h5>
+                            <small class="text-muted">${getTypeDisplay(room.type)} · Piso ${room.floor} · Capacidad ${room.capacity}</small>
+                        </div>
+                        <div class="text-end">
+                            ${statusBadge}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="price-display">
+                            <span class="currency">$</span>${Number(room.price).toLocaleString('es-AR')}<small class="text-muted">/noche</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="editRoom(${room.id})" title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="confirmDeleteRoom(${room.id}, '${room.number}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <label class="form-label mb-1">Estado</label>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select" onchange="changeRoomStatus(${room.id}, this.value)">
+                                    <option value="available" ${room.status==='available'?'selected':''}>Disponible</option>
+                                    <option value="occupied" ${room.status==='occupied'?'selected':''}>Ocupada</option>
+                                    <option value="cleaning" ${room.status==='cleaning'?'selected':''}>En Limpieza</option>
+                                    <option value="maintenance" ${room.status==='maintenance'?'selected':''}>En Mantenimiento</option>
+                                    <option value="reserved" ${room.status==='reserved'?'selected':''}>Reservada</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" onclick="refreshRoom(${room.id})"><i class="fas fa-sync"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex gap-2 mt-2">
+                            <a class="btn btn-outline-primary btn-sm" href="${buildRoomDetailUrl(room.id)}" target="_blank"><i class="fas fa-eye me-1"></i>Ver</a>
+                            <a class="btn btn-outline-info btn-sm" href="${buildBookingsUrl(room.number)}"><i class="fas fa-list me-1"></i>Ver Reservas</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        grid.appendChild(col);
+    });
+}
+
+function buildRoomDetailUrl(roomId) {
+    if (HOTEL_PARAM) {
+        return `/h/${encodeURIComponent(HOTEL_PARAM)}/portal/rooms/${roomId}/`;
+    }
+    return `/portal/rooms/${roomId}/`;
+}
+
+function buildBookingsUrl(roomNumber) {
+    const base = HOTEL_PARAM ? `/panel/${encodeURIComponent(HOTEL_PARAM)}/reservas/` : '/bookings/';
+    return `${base}?search=${encodeURIComponent(roomNumber)}`;
+}
+
+async function changeRoomStatus(roomId, newStatus) {
+    try {
+        const res = await fetch(`/api/rooms/${roomId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (res.ok) {
+            showAlert('Estado actualizado', 'success');
+            await loadRooms();
+            if (document.getElementById('roomsCardsCard') && !document.getElementById('roomsCardsCard').classList.contains('d-none')) {
+                renderRoomsCards(rooms);
+            }
+        } else {
+            const err = await res.json();
+            showAlert('Error al cambiar estado: ' + (err.error || res.statusText), 'danger');
+        }
+    } catch (e) {
+        showAlert('Error de conexión', 'danger');
+    }
+}
+
+function refreshRoom(roomId) {
+    // Simplemente recarga la lista, útil si se cambió el estado externamente
+    loadRooms().then(() => {
+        if (document.getElementById('roomsCardsCard') && !document.getElementById('roomsCardsCard').classList.contains('d-none')) {
+            renderRoomsCards(rooms);
+        }
+    });
+}
+
+function setAdminView(view) {
+    const tableCard = document.getElementById('roomsTableCard');
+    const cardsCard = document.getElementById('roomsCardsCard');
+    const btnTable = document.getElementById('viewTableBtn');
+    const btnCards = document.getElementById('viewCardsBtn');
+    if (view === 'cards') {
+        tableCard.classList.add('d-none');
+        cardsCard.classList.remove('d-none');
+        renderRoomsCards(rooms);
+        btnTable.classList.remove('active');
+        btnCards.classList.add('active');
+    } else {
+        cardsCard.classList.add('d-none');
+        tableCard.classList.remove('d-none');
+        btnCards.classList.remove('active');
+        btnTable.classList.add('active');
+    }
 }
 
 // Filtrar habitaciones
@@ -402,7 +548,8 @@ async function saveRoom(event) {
     };
     
     try {
-        const url = editingRoomId ? `/api/rooms/${editingRoomId}/` : '/api/rooms/';
+        const baseUrl = editingRoomId ? `/api/rooms/${editingRoomId}/` : '/api/rooms/';
+        const url = (!editingRoomId && HOTEL_PARAM) ? `${baseUrl}?hotel=${encodeURIComponent(HOTEL_PARAM)}` : baseUrl;
         const method = editingRoomId ? 'PUT' : 'POST';
         
         const response = await fetch(url, {
@@ -536,6 +683,7 @@ function exportRoomsCsv() {
     if (searchFilter) params.append('search', searchFilter);
 
     const baseUrl = '{% url 'rooms_export_csv' %}';
+    if (HOTEL_PARAM) params.append('hotel', HOTEL_PARAM);
     const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
 
     const btn = document.getElementById('exportCsvBtn');

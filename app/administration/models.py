@@ -33,6 +33,7 @@ class Hotel(models.Model):
     plan_name = models.CharField(max_length=20, choices=PLAN_CHOICES, default=PLAN_STARTER)
     subscription_status = models.CharField(max_length=20, choices=SUBSCRIPTION_STATUS_CHOICES, default=SUB_TRIAL)
     trial_until = models.DateField(null=True, blank=True)
+    template_id = models.CharField(max_length=50, default='client')
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

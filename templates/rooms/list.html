@@ -134,10 +134,14 @@
                     <div class="row" id="roomsGrid">
                         {% for room in rooms %}
                         <div class="col-md-4 col-lg-3 mb-4 room-card" 
+                             data-id="{{ room.id }}"
                              data-status="{{ room.status }}" 
                              data-type="{{ room.type }}" 
                              data-floor="{{ room.floor }}"
-                             data-number="{{ room.number }}">
+                             data-number="{{ room.number }}"
+                             data-capacity="{{ room.capacity }}"
+                             data-price="{{ room.price }}"
+                             data-description="{{ room.description|default:''|escape }}">
                             <div class="card h-100">
                                 <div class="card-header text-center py-3">
                                     <h5 class="mb-0">
@@ -182,9 +186,6 @@
                                         </button>
                                         <button class="btn btn-outline-info btn-sm" onclick="viewRoom({{ room.id }})">
                                             <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning btn-sm" onclick="changeStatus({{ room.id }})">
-                                            <i class="fas fa-exchange-alt"></i>
                                         </button>
                                         {% if room.active %}
                                         <button class="btn btn-outline-danger btn-sm" onclick="toggleRoom({{ room.id }}, false)">
@@ -284,6 +285,110 @@
     </div>
 </div>
 
+<!-- Room Detail Modal (inline, sin redirección) -->
+<div class="modal fade" id="roomDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalle de Habitación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="roomDetailLoading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted mt-2 mb-0">Cargando detalle...</p>
+        </div>
+        <div id="roomDetailContent" class="d-none">
+          <div class="row g-4">
+            <div class="col-lg-7">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <div id="roomMainImage" class="mb-3 text-center"></div>
+                  <div id="roomThumbs" class="d-flex flex-wrap gap-2"></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div id="calendarMonth" class="fw-bold"></div>
+                    <div class="btn-group">
+                      <button class="btn btn-outline-primary btn-sm" id="calPrevBtn"><i class="fas fa-chevron-left"></i></button>
+                      <button class="btn btn-outline-primary btn-sm" id="calNextBtn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                  </div>
+                  <div id="calendarGrid" class="d-grid" style="grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-5">
+              <div class="card">
+                <div class="card-body">
+                  <h4 class="fw-bold" id="roomTitle"></h4>
+                  <div class="mb-3">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" id="detailStatusSelect">
+                      <option value="available">Disponible</option>
+                      <option value="occupied">Ocupada</option>
+                      <option value="cleaning">En Limpieza</option>
+                      <option value="maintenance">En Mantenimiento</option>
+                      <option value="reserved">Reservada</option>
+                    </select>
+                  </div>
+                  <form id="roomDetailEditForm">
+                    <div class="mb-2">
+                      <label class="form-label">Número</label>
+                      <input type="text" class="form-control" id="detailNumber">
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label">Tipo</label>
+                      <select class="form-select" id="detailType">
+                        <option value="individual">Individual</option>
+                        <option value="double">Doble</option>
+                        <option value="triple">Triple</option>
+                        <option value="suite">Suite</option>
+                        <option value="family">Familiar</option>
+                      </select>
+                    </div>
+                    <div class="row g-2 mb-2">
+                      <div class="col-6">
+                        <label class="form-label">Capacidad</label>
+                        <input type="number" class="form-control" id="detailCapacity" min="1">
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label">Piso</label>
+                        <input type="number" class="form-control" id="detailFloor" min="1">
+                      </div>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label">Precio por noche</label>
+                      <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="detailPrice" min="0" step="0.01">
+                      </div>
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label">Descripción</label>
+                      <textarea class="form-control" id="detailDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="detailActive">
+                      <label class="form-check-label" for="detailActive">Habitación activa</label>
+                    </div>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-primary" id="detailSaveBtn"><i class="fas fa-save me-1"></i>Guardar cambios</button>
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
 <script>
 // Filter functionality
 document.addEventListener('DOMContentLoaded', function() {
@@ -325,25 +430,200 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('input', filterRooms);
 });
 
+// Helpers
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const HOTEL_SLUG = '{{ hotel.slug|default:"" }}';
+
+function findRoomCard(roomId) {
+    return document.querySelector(`.room-card[data-id="${roomId}"]`);
+}
+
+function openEditModalWith(roomId) {
+    const card = findRoomCard(roomId);
+    if (!card) return;
+    const form = document.getElementById('addRoomForm');
+    form.dataset.mode = 'edit';
+    form.dataset.roomId = String(roomId);
+    // Prefill
+    form.querySelector('input[name="number"]').value = card.dataset.number || '';
+    form.querySelector('input[name="floor"]').value = card.dataset.floor || '';
+    form.querySelector('select[name="type"]').value = card.dataset.type || '';
+    form.querySelector('input[name="capacity"]').value = card.dataset.capacity || '1';
+    form.querySelector('input[name="price"]').value = card.dataset.price || '';
+    form.querySelector('textarea[name="description"]').value = card.dataset.description || '';
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('addRoomModal'));
+    modal.show();
+}
+
 // Room management functions
 function editRoom(roomId) {
-    // Implement edit functionality
-    console.log('Edit room:', roomId);
+    openEditModalWith(roomId);
 }
 
 function viewRoom(roomId) {
-    // Implement view functionality
-    console.log('View room:', roomId);
+    const modal = new bootstrap.Modal(document.getElementById('roomDetailModal'));
+    document.getElementById('roomDetailLoading').classList.remove('d-none');
+    document.getElementById('roomDetailContent').classList.add('d-none');
+    modal.show();
+    fetch(`/api/rooms/${roomId}/detail/`).then(async res => {
+        if (!res.ok) { throw new Error('Error al cargar detalle'); }
+        const data = await res.json();
+        document.getElementById('roomTitle').textContent = `Hab. ${data.number} · ${data.type_label}`;
+        const main = (data.images || []).find(i => i.is_main) || (data.images || [])[0];
+        const mainEl = document.getElementById('roomMainImage');
+        mainEl.innerHTML = main && main.url ? `<img src="${main.url}" class="img-fluid rounded" alt="${main.alt||''}">` : '<div class="text-muted">Sin imagen</div>';
+        const thumbsEl = document.getElementById('roomThumbs');
+        thumbsEl.innerHTML = '';
+        (data.images || []).forEach(img => {
+            if (!img.url) return;
+            const a = document.createElement('a');
+            a.href = '#';
+            a.onclick = (e)=>{ e.preventDefault(); mainEl.innerHTML = `<img src='${img.url}' class='img-fluid rounded' alt='${img.alt||''}'>`; };
+            a.innerHTML = `<img src="${img.url}" class="rounded" style="width:72px;height:72px;object-fit:cover;" alt="${img.alt||''}">`;
+            thumbsEl.appendChild(a);
+        });
+        document.getElementById('detailStatusSelect').value = data.status;
+        document.getElementById('detailNumber').value = data.number;
+        document.getElementById('detailType').value = data.type;
+        document.getElementById('detailCapacity').value = data.capacity;
+        document.getElementById('detailFloor').value = data.floor;
+        document.getElementById('detailPrice').value = data.price;
+        document.getElementById('detailDescription').value = data.description || '';
+        document.getElementById('detailActive').checked = !!data.active;
+        document.getElementById('detailStatusSelect').onchange = async function(){
+          const next = this.value;
+          const res = await fetch(`/api/rooms/${roomId}/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ status: next })
+          });
+          if (!res.ok) { const err = await res.json().catch(()=>({})); alert('Error al cambiar estado: ' + (err.error||res.statusText)); this.value = data.status; return; }
+        };
+        document.getElementById('detailSaveBtn').onclick = async function(){
+          const payload = {
+            number: document.getElementById('detailNumber').value,
+            type: document.getElementById('detailType').value,
+            capacity: parseInt(document.getElementById('detailCapacity').value||'1'),
+            floor: parseInt(document.getElementById('detailFloor').value||'1'),
+            price: parseFloat(document.getElementById('detailPrice').value||'0'),
+            description: document.getElementById('detailDescription').value||'',
+            active: document.getElementById('detailActive').checked,
+            status: document.getElementById('detailStatusSelect').value
+          };
+          const res = await fetch(`/api/rooms/${roomId}/`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) { location.reload(); } else { const err = await res.json().catch(()=>({})); alert('Error al guardar: ' + (err.error||res.statusText)); }
+        };
+        initAdminCalendar(roomId);
+        document.getElementById('roomDetailLoading').classList.add('d-none');
+        document.getElementById('roomDetailContent').classList.remove('d-none');
+    }).catch(()=>{
+        document.getElementById('roomDetailLoading').innerHTML = '<div class="text-danger">No se pudo cargar el detalle</div>';
+    });
 }
 
-function changeStatus(roomId) {
-    // Implement status change functionality
-    console.log('Change status for room:', roomId);
+let calCurrent = new Date();
+function initAdminCalendar(roomId){
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const monthEl = document.getElementById('calendarMonth');
+  const gridEl = document.getElementById('calendarGrid');
+  document.getElementById('calPrevBtn').onclick = ()=>{ calCurrent.setMonth(calCurrent.getMonth()-1); renderCalendar(roomId); };
+  document.getElementById('calNextBtn').onclick = ()=>{ calCurrent.setMonth(calCurrent.getMonth()+1); renderCalendar(roomId); };
+  function renderHeaders(){
+    gridEl.innerHTML='';
+    ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(d=>{ const h=document.createElement('div'); h.className='text-center fw-bold bg-light p-1'; h.textContent=d; gridEl.appendChild(h); });
+  }
+  async function renderCalendar(roomId){
+    monthEl.textContent = `${monthNames[calCurrent.getMonth()]} ${calCurrent.getFullYear()}`;
+    renderHeaders();
+    const start = new Date(calCurrent.getFullYear(), calCurrent.getMonth(), 1);
+    const end = new Date(calCurrent.getFullYear(), calCurrent.getMonth()+1, 0);
+    const padStart = new Date(start); padStart.setDate(padStart.getDate()-padStart.getDay());
+    const iso = d=> new Date(d).toISOString().split('T')[0];
+    let avail = {};
+    try {
+      const r = await fetch(`/portal/room-availability/${roomId}/?start_date=${iso(padStart)}&end_date=${iso(end)}`);
+      const j = await r.json(); avail = j.availability||{};
+    } catch(e) {}
+    for(let i=0;i<42;i++){
+      const date = new Date(padStart); date.setDate(padStart.getDate()+i);
+      const cell = document.createElement('div');
+      cell.className = 'text-center border rounded p-2';
+      if(date.getMonth()!==calCurrent.getMonth()) cell.classList.add('bg-light');
+      const ds = iso(date);
+      const a = avail[ds];
+      if(a && a.available){ cell.classList.add('bg-success','bg-opacity-10'); }
+      if(a && !a.available){ cell.classList.add('bg-danger','bg-opacity-10'); cell.style.opacity='0.7'; }
+      cell.textContent = String(date.getDate());
+      gridEl.appendChild(cell);
+    }
+  }
+  renderCalendar(roomId);
 }
+
 
 function toggleRoom(roomId, active) {
-    // Implement toggle functionality
-    console.log('Toggle room:', roomId, 'Active:', active);
+    fetch(`/api/rooms/${roomId}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ active: !!active })
+    }).then(async res => {
+        if (res.ok) {
+            location.reload();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert('Error al actualizar: ' + (err.error || res.statusText));
+        }
+    }).catch(() => alert('Error de red'));
 }
+
+// Interceptar submit para crear/editar
+document.getElementById('addRoomForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const payload = {
+        number: form.number.value,
+        floor: parseInt(form.floor.value || '1'),
+        type: form.type.value,
+        capacity: parseInt(form.capacity.value || '1'),
+        price: parseFloat(form.price.value || '0'),
+        description: form.description.value || ''
+    };
+    const isEdit = form.dataset.mode === 'edit';
+    const roomId = form.dataset.roomId;
+    const baseUrl = isEdit ? `/api/rooms/${roomId}/` : '/api/rooms/';
+    const url = (!isEdit && HOTEL_SLUG) ? `${baseUrl}?hotel=${encodeURIComponent(HOTEL_SLUG)}` : baseUrl;
+    fetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(payload)
+    }).then(async res => {
+        if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addRoomModal')).hide();
+            location.reload();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert('Error al guardar: ' + (err.error || res.statusText));
+        }
+    }).catch(() => alert('Error de red'));
+});
 </script>
 {% endblock %}

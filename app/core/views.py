@@ -432,7 +432,13 @@ def client_index_hotel_view(request, hotel_slug):
     else:
         available_rooms = []
         featured_rooms = []
-    return render(request, 'client/index.html', {
+    tpl_home = 'client/index.html'
+    try:
+        if getattr(hotel, 'template_id', 'client') == 'nuevo':
+            tpl_home = 'diseño-bocking/home.html'
+    except Exception:
+        pass
+    return render(request, tpl_home, {
         'available_rooms': available_rooms,
         'featured_rooms': featured_rooms,
         'hotel': hotel,
@@ -866,7 +872,7 @@ def client_booking_view(request, room_id=None):
             messages.error(request, 'Por favor completa todos los campos requeridos.')
     
     # Obtener fechas mínimas para el formulario
-    from datetime import date, timedelta
+    from datetime import datetime, date, timedelta
     today = date.today()
     min_checkout = today + timedelta(days=1)
     

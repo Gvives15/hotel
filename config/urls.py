@@ -26,7 +26,7 @@ from config.settings import API_TITLE, API_DESCRIPTION, API_VERSION
 from django.http import HttpResponse
 import json
 from enum import Enum
-from app.clients.views import clients_api_collection
+from app.clients.views import clients_api_collection, clients_api_detail
 from app.bookings.views import bookings_api_collection, booking_api_detail, create_booking_api, update_booking_api
 
 # Importar vistas web
@@ -70,7 +70,7 @@ from app.core.views import (
     panel_administration_hotel_view, panel_reports_hotel_view, panel_change_booking_status_hotel_view
 )
 from app.core.views import client_simulate_payment_view, client_booking_pdf_view, health_view
-from app.rooms.views import rooms_view, rooms_api_collection, room_api_detail, export_rooms_csv
+from app.rooms.views import rooms_view, rooms_api_collection, room_api_detail, export_rooms_csv, room_detail_api
 from app.bookings.views import export_bookings_csv
 
 # Importar vistas de reservas
@@ -386,9 +386,11 @@ urlpatterns = [
     # Endpoints REST de habitaciones para el dashboard
     path("api/rooms/", rooms_api_collection, name="rooms_api_collection"),
     path("api/rooms/<int:room_id>/", room_api_detail, name="room_api_detail"),
+    path("api/rooms/<int:room_id>/detail/", room_detail_api, name="room_detail_api"),
 
     # Endpoints REST de clientes para el dashboard
     path("api/clients/", clients_api_collection, name="clients_api_collection"),
+    path("api/clients/<int:client_id>/", clients_api_detail, name="clients_api_detail"),
 
     # Endpoints REST de reservas para el dashboard
     path("api/bookings/", bookings_api_collection, name="bookings_api_collection"),
@@ -443,6 +445,7 @@ urlpatterns = [
     path("portal/booking/<int:room_id>/", client_booking_view, name="client_booking_room"),
     path("portal/booking/confirmation/<int:booking_id>/", client_booking_confirmation_view, name="client_booking_confirmation"),
     path("portal/profile/", client_profile_view, name="client_profile"),
+    path("portal/room-availability/<int:room_id>/", get_room_availability, name="room_availability"),
 
     # Rutas slug-based del portal por hotel
     path("h/<slug:hotel_slug>/portal/", client_index_hotel_view, name="client_index_hotel"),

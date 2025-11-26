@@ -1,0 +1,888 @@
+{% extends 'diseño-bocking/base.html' %}
+{% block title %}{{ hotel.name|default:"Hotel" }} · Reserva online{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container hero__grid">
+    <div class="hero__content animate-fadeIn">
+      <div class="hero__badge">
+        <i class="fas fa-star"></i>
+        <span>Hotel Calificado</span>
+      </div>
+      <h1 class="hero__title">Tu escape perfecto en {{ hotel.name|default:"nuestro hotel" }}</h1>
+      <p class="hero__lead">Descubre una experiencia de hospedaje excepcional con comodidades de primer nivel, servicio personalizado y la mejor ubicación. Reserva con confianza y disfruta de tarifas exclusivas.</p>
+      
+      <div class="hero__features">
+        <div class="feature">
+          <i class="fas fa-shield-alt"></i>
+          <span>Reserva Segura</span>
+        </div>
+        <div class="feature">
+          <i class="fas fa-calendar-check"></i>
+          <span>Cancelación Flexible</span>
+        </div>
+        <div class="feature">
+          <i class="fas fa-tag"></i>
+          <span>Mejor Precio Garantizado</span>
+        </div>
+      </div>
+      
+      <div class="hero__stats">
+        <div class="stat">
+          <span class="stat__number">4.8</span>
+          <span class="stat__label">Valoración</span>
+        </div>
+        <div class="stat">
+          <span class="stat__number">500+</span>
+          <span class="stat__label">Reseñas</span>
+        </div>
+        <div class="stat">
+          <span class="stat__number">24/7</span>
+          <span class="stat__label">Atención</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="hero__booking animate-fadeIn" style="animation-delay: 0.2s;">
+      <div class="booking-card">
+        <div class="booking-card__header">
+          <h3>Encuentra tu habitación ideal</h3>
+          <p>Completa tus fechas y descubre nuestras mejores ofertas</p>
+        </div>
+        
+        <form method="get" action="{% url 'booking_step1' %}" class="booking-form">
+          <div class="form-group">
+            <div class="date-inputs">
+              <div class="date-input">
+                <label for="check_in">
+                  <i class="fas fa-calendar-alt"></i>
+                  Check-in
+                </label>
+                <input id="check_in" name="check_in" type="date" class="input" required>
+              </div>
+              <div class="date-separator">
+                <i class="fas fa-arrow-right"></i>
+              </div>
+              <div class="date-input">
+                <label for="check_out">
+                  <i class="fas fa-calendar-alt"></i>
+                  Check-out
+                </label>
+                <input id="check_out" name="check_out" type="date" class="input" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="guests">
+              <i class="fas fa-users"></i>
+              Huéspedes
+            </label>
+            <select id="guests" name="guests" class="input" required>
+              <option value="1">1 huésped</option>
+              <option value="2" selected>2 huéspedes</option>
+              <option value="3">3 huéspedes</option>
+              <option value="4">4 huéspedes</option>
+              <option value="5+">5+ huéspedes</option>
+            </select>
+          </div>
+          
+          <button type="submit" class="btn btn--primary btn--lg booking-btn">
+            <i class="fas fa-search"></i>
+            <span>Buscar disponibilidad</span>
+            <small>Mejores tarifas del día</small>
+          </button>
+        </form>
+        
+        <div class="booking-card__footer">
+          <div class="trust-indicators">
+            <div class="trust-item">
+              <i class="fas fa-lock"></i>
+              <span>Pago seguro</span>
+            </div>
+            <div class="trust-item">
+              <i class="fas fa-award"></i>
+              <span>Certificado de calidad</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Rooms Section -->
+<section class="featured-rooms">
+  <div class="container">
+    <div class="section-header animate-fadeIn">
+      <div class="section-header__content">
+        <div class="section-badge">
+          <i class="fas fa-crown"></i>
+          <span>Exclusivo</span>
+        </div>
+        <h2 class="section-title">Habitaciones destacadas</h2>
+        <p class="section-subtitle">Nuestra selección premium de habitaciones con las mejores comodidades y vistas espectaculares</p>
+      </div>
+      <a href="{% url 'client_rooms_hotel' hotel.slug %}" class="btn btn--outline">
+        <i class="fas fa-th-large"></i>
+        Ver todas las habitaciones
+      </a>
+    </div>
+    
+    <div class="rooms-grid">
+      {% for room in featured_rooms %}
+      <article class="room-card animate-fadeIn" style="animation-delay: {{ forloop.counter0|add:0.1 }}s;">
+        <div class="room-card__media">
+          <img src="{{ room.main_image }}" alt="Habitación {{ room.number }}">
+          <div class="room-card__badges">
+            {% if forloop.first %}
+              <span class="badge badge--premium">Más Popular</span>
+            {% endif %}
+            <span class="badge badge--available">Disponible</span>
+          </div>
+          <div class="room-card__overlay">
+            <button class="btn btn--primary btn--sm quick-view-btn">
+              <i class="fas fa-eye"></i>
+              Vista rápida
+            </button>
+          </div>
+        </div>
+        
+        <div class="room-card__content">
+          <div class="room-card__header">
+            <div>
+              <h3 class="room-card__title">{{ room.get_type_display }}</h3>
+              <p class="room-card__subtitle">Habitación {{ room.number }} · Hasta {{ room.capacity }} huéspedes</p>
+            </div>
+            <div class="room-card__rating">
+              <div class="rating">
+                <i class="fas fa-star"></i>
+                <span>4.9</span>
+              </div>
+              <small>({{ room.capacity|add:120 }})</small>
+            </div>
+          </div>
+          
+          <div class="room-card__features">
+            <div class="feature-item">
+              <i class="fas fa-wifi"></i>
+              <span>Wi-Fi Premium</span>
+            </div>
+            <div class="feature-item">
+              <i class="fas fa-snowflake"></i>
+              <span>A/C</span>
+            </div>
+            <div class="feature-item">
+              <i class="fas fa-tv"></i>
+              <span>Smart TV</span>
+            </div>
+            <div class="feature-item">
+              <i class="fas fa-coffee"></i>
+              <span>Desayuno</span>
+            </div>
+          </div>
+          
+          <div class="room-card__footer">
+            <div class="price-section">
+              <div class="price-original">
+                <span>$</span>{{ room.price|add:30 }}
+              </div>
+              <div class="price-current">
+                <span class="price-currency">$</span>
+                <span class="price-amount">{{ room.price }}</span>
+                <span class="price-period">/noche</span>
+              </div>
+              <div class="price-savings">
+                <span class="badge badge--success">Ahorra 15%</span>
+              </div>
+            </div>
+            
+            <div class="room-actions">
+              <a href="{% url 'client_room_detail_hotel' hotel.slug room.id %}" class="btn btn--outline btn--sm">
+                <i class="fas fa-info-circle"></i>
+                Detalles
+              </a>
+              <a href="{% url 'client_booking_room_hotel' hotel.slug room.id %}" class="btn btn--primary btn--sm">
+                <i class="fas fa-calendar-check"></i>
+                Reservar
+              </a>
+            </div>
+          </div>
+        </div>
+      </article>
+      {% empty %}
+      <div class="empty-state">
+        <i class="fas fa-bed"></i>
+        <h3>No hay habitaciones disponibles</h3>
+        <p>Por favor, intenta con otras fechas o contacta directamente con el hotel.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Hotel Features Section -->
+<section class="hotel-features">
+  <div class="container">
+    <div class="features-grid">
+      <div class="feature-card animate-fadeIn">
+        <div class="feature-icon">
+          <i class="fas fa-concierge-bell"></i>
+        </div>
+        <h3>Servicio Personalizado</h3>
+        <p>Atención las 24 horas con personal multilingüe dedicado a hacer tu estadía inolvidable.</p>
+      </div>
+      
+      <div class="feature-card animate-fadeIn" style="animation-delay: 0.1s;">
+        <div class="feature-icon">
+          <i class="fas fa-utensils"></i>
+        </div>
+        <h3>Restaurante Gourmet</h3>
+        <p>Cocina internacional y local con ingredientes frescos y menús diseñados por chefs reconocidos.</p>
+      </div>
+      
+      <div class="feature-card animate-fadeIn" style="animation-delay: 0.2s;">
+        <div class="feature-icon">
+          <i class="fas fa-spa"></i>
+        </div>
+        <h3>Spa & Bienestar</h3>
+        <p>Relájate en nuestro spa con tratamientos personalizados, sauna y gimnasio de última generación.</p>
+      </div>
+      
+      <div class="feature-card animate-fadeIn" style="animation-delay: 0.3s;">
+        <div class="feature-icon">
+          <i class="fas fa-wifi"></i>
+        </div>
+        <h3>Wi-Fi Ultra Rápido</h3>
+        <p>Conectividad de alta velocidad en todas las áreas del hotel, perfecto para trabajo y entretenimiento.</p>
+      </div>
+      
+      <div class="feature-card animate-fadeIn" style="animation-delay: 0.4s;">
+        <div class="feature-icon">
+          <i class="fas fa-parking"></i>
+        </div>
+        <h3>Estacionamiento Seguro</h3>
+        <p>Estacionamiento privado y vigilado las 24 horas con acceso directo al hotel.</p>
+      </div>
+      
+      <div class="feature-card animate-fadeIn" style="animation-delay: 0.5s;">
+        <div class="feature-icon">
+          <i class="fas fa-swimming-pool"></i>
+        </div>
+        <h3>Piscina Infinity</h3>
+        <p>Piscina con vista panorámica, bar en la piscina y servicio de toallas y bebidas incluido.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Trust Section -->
+<section class="trust-section">
+  <div class="container">
+    <div class="trust-content">
+      <div class="trust-text animate-fadeIn">
+        <h2>¿Por qué elegir {{ hotel.name|default:"nuestro hotel" }}?</h2>
+        <p>Nos comprometemos a ofrecerte una experiencia excepcional desde el momento de tu reserva hasta tu checkout. Nuestro equipo está dedicado a superar tus expectativas.</p>
+        
+        <div class="trust-metrics">
+          <div class="metric">
+            <span class="metric-number">98%</span>
+            <span class="metric-label">Huéspedes satisfechos</span>
+          </div>
+          <div class="metric">
+            <span class="metric-number">24/7</span>
+            <span class="metric-label">Atención al cliente</span>
+          </div>
+          <div class="metric">
+            <span class="metric-number">5★</span>
+            <span class="metric-label">Calificación promedio</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="trust-image animate-fadeIn" style="animation-delay: 0.2s;">
+        <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Hotel experience">
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Additional styles for the redesigned home page */
+.hero {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--clr-primary) 0%, var(--clr-primary-light) 100%);
+  z-index: 1;
+}
+
+.hero__grid {
+  position: relative;
+  z-index: 2;
+}
+
+.hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--clr-white);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-4);
+  backdrop-filter: blur(10px);
+}
+
+.hero__features {
+  display: flex;
+  gap: var(--space-6);
+  margin: var(--space-8) 0;
+  flex-wrap: wrap;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--clr-white);
+  font-weight: 500;
+}
+
+.hero__stats {
+  display: flex;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat__number {
+  display: block;
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--clr-accent);
+  line-height: 1;
+}
+
+.stat__label {
+  font-size: var(--fs-sm);
+  color: var(--clr-white);
+  opacity: 0.9;
+}
+
+.booking-card {
+  background: var(--clr-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.booking-card__header {
+  background: var(--clr-bg);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.booking-card__header h3 {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--clr-primary);
+  margin-bottom: var(--space-2);
+}
+
+.booking-card__header p {
+  color: var(--clr-text-light);
+  margin: 0;
+}
+
+.booking-form {
+  padding: var(--space-6);
+}
+
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.date-inputs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.date-input label,
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 500;
+  color: var(--clr-text);
+  margin-bottom: var(--space-2);
+}
+
+.date-separator {
+  color: var(--clr-primary);
+  font-size: var(--fs-lg);
+  padding-bottom: var(--space-3);
+}
+
+.booking-btn {
+  width: 100%;
+  position: relative;
+  padding: var(--space-4) var(--space-6);
+}
+
+.booking-btn small {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  opacity: 0.9;
+  margin-top: var(--space-1);
+}
+
+.booking-card__footer {
+  padding: var(--space-4) var(--space-6);
+  background: var(--clr-bg);
+  border-top: 1px solid var(--clr-border);
+}
+
+.trust-indicators {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--space-4);
+}
+
+.trust-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-xs);
+  color: var(--clr-text-light);
+}
+
+.trust-item i {
+  color: var(--clr-success);
+  font-size: var(--fs-lg);
+}
+
+.featured-rooms {
+  padding: var(--space-16) 0;
+  background: var(--clr-bg);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
+  flex-wrap: wrap;
+}
+
+.section-header__content {
+  flex: 1;
+}
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--clr-accent);
+  color: var(--clr-primary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+}
+
+.section-title {
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  color: var(--clr-primary);
+  margin-bottom: var(--space-3);
+}
+
+.section-subtitle {
+  font-size: var(--fs-lg);
+  color: var(--clr-text-light);
+  margin: 0;
+  max-width: 600px;
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: var(--space-6);
+}
+
+.room-card {
+  background: var(--clr-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: all var(--transition);
+}
+
+.room-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.room-card__media {
+  position: relative;
+  overflow: hidden;
+}
+
+.room-card__media img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  transition: transform var(--transition);
+}
+
+.room-card:hover .room-card__media img {
+  transform: scale(1.05);
+}
+
+.room-card__badges {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.badge--premium {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  color: var(--clr-white);
+}
+
+.badge--available {
+  background: var(--clr-success);
+  color: var(--clr-white);
+}
+
+.room-card__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.room-card:hover .room-card__overlay {
+  opacity: 1;
+}
+
+.quick-view-btn {
+  transform: translateY(10px);
+  transition: transform var(--transition);
+}
+
+.room-card:hover .quick-view-btn {
+  transform: translateY(0);
+}
+
+.room-card__content {
+  padding: var(--space-6);
+}
+
+.room-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.room-card__title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--clr-primary);
+  margin-bottom: var(--space-1);
+}
+
+.room-card__subtitle {
+  font-size: var(--fs-sm);
+  color: var(--clr-text-light);
+  margin: 0;
+}
+
+.room-card__rating {
+  text-align: right;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--clr-accent);
+  font-weight: 600;
+}
+
+.room-card__features {
+  display: flex;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  flex-wrap: wrap;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--clr-text-light);
+}
+
+.room-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--clr-border);
+}
+
+.price-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.price-original {
+  font-size: var(--fs-sm);
+  color: var(--clr-text-light);
+  text-decoration: line-through;
+}
+
+.price-current {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.price-currency {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--clr-primary);
+}
+
+.price-amount {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--clr-primary);
+}
+
+.price-period {
+  font-size: var(--fs-sm);
+  color: var(--clr-text-light);
+}
+
+.room-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.hotel-features {
+  padding: var(--space-16) 0;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-8);
+}
+
+.feature-card {
+  text-align: center;
+  padding: var(--space-8);
+  background: var(--clr-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.feature-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--space-4);
+  background: linear-gradient(135deg, var(--clr-primary), var(--clr-primary-light));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--clr-white);
+  font-size: var(--fs-2xl);
+}
+
+.feature-card h3 {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--clr-primary);
+  margin-bottom: var(--space-3);
+}
+
+.feature-card p {
+  color: var(--clr-text-light);
+  margin: 0;
+}
+
+.trust-section {
+  padding: var(--space-16) 0;
+  background: var(--clr-bg);
+}
+
+.trust-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  align-items: center;
+}
+
+.trust-text h2 {
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  color: var(--clr-primary);
+  margin-bottom: var(--space-4);
+}
+
+.trust-text p {
+  font-size: var(--fs-lg);
+  color: var(--clr-text-light);
+  margin-bottom: var(--space-8);
+}
+
+.trust-metrics {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-number {
+  display: block;
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  color: var(--clr-primary);
+  line-height: 1;
+}
+
+.metric-label {
+  font-size: var(--fs-sm);
+  color: var(--clr-text-light);
+}
+
+.trust-image img {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-12);
+  color: var(--clr-text-light);
+}
+
+.empty-state i {
+  font-size: var(--fs-4xl);
+  color: var(--clr-primary);
+  margin-bottom: var(--space-4);
+}
+
+.empty-state h3 {
+  font-size: var(--fs-xl);
+  color: var(--clr-primary);
+  margin-bottom: var(--space-2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero {
+    min-height: auto;
+    padding: var(--space-12) 0;
+  }
+  
+  .hero__features {
+    gap: var(--space-4);
+  }
+  
+  .hero__stats {
+    gap: var(--space-6);
+  }
+  
+  .date-inputs {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  
+  .date-separator {
+    transform: rotate(90deg);
+    padding: 0;
+    margin: var(--space-2) 0;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .rooms-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .room-card__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .room-actions {
+    justify-content: center;
+  }
+  
+  .trust-content {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+  
+  .trust-metrics {
+    justify-content: space-around;
+  }
+}
+</style>
+{% endblock %}
